@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Supabase Google Sign-In</title>
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+
+    const supabaseUrl = 'http://localhost:8000'
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE'
+    const supabase = createClient(supabaseUrl, supabaseKey)
+
+    // Handle redirect result (e.g. after Google login)
+    const { data: { session }, error } = await supabase.auth.getSession()
+
+    if (error) {
+      console.error('Session fetch error:', error.message)
+    } else if (session) {
+      document.getElementById('user-info').textContent = `Logged in as ${session.user.email}`
+      console.log('User session:', session)
+    }
+
+    // Sign in with Google
+    window.signInWithGoogle = async () => {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin + window.location.pathname,
+        },
+      })
+      if (error) {
+        console.error('Login error:', error.message)
+        alert('Login failed!')
+      }
+    }
+
+    // Sign out
+    window.signOut = async () => {
+      const { error } = await supabase.auth.signOut()
+      if (error) {
+        console.error('Sign-out error:', error.message)
+      } else {
+        location.reload()
+      }
+    }
+
+    window.signUpWithGoogle = async () => {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        // options: {
+        //   redirectTo: window.location.origin + window.location.pathname,
+        // },
+      })
+      console.log("SignUp successful", data)
+      console.error("SignUp Error")
+      console.log(error)
+    }
+  </script>
+</head>
+<body>
+  <h1>Supabase Google Login</h1>
+  <button onclick="signUpWithGoogle()">Sign up with Google</button>
+  <button onclick="signInWithGoogle()">Sign in with Google</button>
+  <button onclick="signOut()">Sign out</button>
+  <p id="user-info">Not logged in</p>
+</body>
+</html>
