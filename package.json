@@ -10,7 +10,9 @@
   },
   "dependencies": {
     "@primeuix/themes": "^1.1.1",
+    "@primevue/forms": "^4.3.5",
     "@supabase/supabase-js": "^2.49.8",
+    "@vueuse/core": "^13.3.0",
     "pinia": "^3.0.1",
     "primeicons": "^7.0.0",
     "primevue": "^4.3.4",

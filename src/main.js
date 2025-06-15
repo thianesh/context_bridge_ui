@@ -14,6 +14,7 @@ import App from './App.vue'
 import router from './router'
 
 const app = createApp(App)
+import ToastService from 'primevue/toastservice';
 
 
 const Noir = definePreset(Aura, {
@@ -85,9 +86,9 @@ app.use(PrimeVue, {
         options: {
             prefix: 'p',
             darkModeSelector: '.my-app-dark',
-            cssLayer: true
+            // cssLayer: true
         }
     }
 });
-
+app.use(ToastService);
 app.mount('#app')

@@ -29,13 +29,13 @@ const items = ref([
             router.push('/rooms');
         }
     },
-    {
-        label: 'rooms-access',
-        icon: 'pi pi-lock',
-        command: () => {
-            router.push('/room-access');
-        }
-    },
+    // {
+    //     label: 'rooms-access',
+    //     icon: 'pi pi-lock',
+    //     command: () => {
+    //         router.push('/room-access');
+    //     }
+    // },
     // {
     //     label: 'External',
     //     icon: 'pi pi-home',

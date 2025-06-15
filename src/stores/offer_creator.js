@@ -14,7 +14,7 @@ export class webrtc_offer_creator {
     this.dc  = this.pc.createDataChannel('data');
     this.dc.onopen    = () =>  {
       console.log('[DC] open');
-      setInterval(() => this.dc.send("ping from browser"), 2000)
+      setInterval(() => this.dc.send( JSON.stringify( { Type: "data", data: "ping from browser"} ) ), 3000)
     }
     this.dc.onmessage = async (payload) => {
       if (payload.data instanceof ArrayBuffer) {
@@ -61,12 +61,15 @@ export class webrtc_offer_creator {
           this.negotiating = false
         }
       } else {
-        console.log('[DC] msg:', payload);
+        // console.log('[DC] msg:', payload);
       }
     }
     this._negotiationLock = false;          // serialises renegotiations
   }
 
+  get_data_channel() {
+    return this.dc;
+  }
   /* -------------------- signalling helpers ----------------------------- */
   /** Create the initial OFFER (data-channel only) and return it as base-64 */
   async makeOfferBase64() {
@@ -80,6 +83,7 @@ export class webrtc_offer_creator {
     await this.#createAndSetOffer();
     await this.#waitForIceComplete();
 
+    console.log(`[Offer from browser]: ${this.pc.localDescription.sdp}`)
     const offerB64 = btoa(this.pc.localDescription.sdp);
     console.log('\n=== BASE-64 SDP OFFER ===\n' + offerB64 + '\n=== /BASE-64 ===\n');
     return offerB64;
