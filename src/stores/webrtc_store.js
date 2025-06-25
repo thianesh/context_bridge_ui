@@ -33,11 +33,11 @@ export const webrtc_store = defineStore('webrtc_store', () => {
     function add_on_message(){
         woc.dc.onmessage = async (payload) => {
         
-        console.log("from pinia [DC] onmessage");
+        // console.log("from pinia [DC] onmessage");
 
         if (payload.data instanceof ArrayBuffer) {
             const msg = arrayBufferToObject(payload.data);
-            console.log(msg);
+            // console.log(msg);
 
             if (msg.event == "online_status") {
                 members_online.value = msg.data.active_users;
