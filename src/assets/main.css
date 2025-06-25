@@ -1,3 +1,6 @@
+@import "tailwindcss";
+@import "tailwindcss-primeui";
+
 body {
   padding: 2rem;
   font-family: Arial, Helvetica, sans-serif;

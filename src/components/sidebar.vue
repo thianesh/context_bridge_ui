@@ -6,6 +6,8 @@ import { Button } from "primevue";
 import { root_store } from '@/stores/root_store'
 import { storeToRefs } from 'pinia'
 const store = root_store()
+const { session_data, members, 
+  display_preference, rooms, members_updated, companyId } = storeToRefs(store)
 
 const router = useRouter();
 
@@ -29,6 +31,13 @@ const items = ref([
             router.push('/rooms');
         }
     },
+    {
+        label: 'space',
+        icon: 'pi pi-building',
+        command: () => {
+            router.push('/company');
+        }
+    },
     // {
     //     label: 'rooms-access',
     //     icon: 'pi pi-lock',
@@ -47,7 +56,7 @@ const items = ref([
 
 <template>
     <div class="card flex justify-center">
-        <Menu :model="items">
+        <Menu :model="items.filter((menuItem) => menuItem.label == 'space' || companyId )">
             <template #item="{ item, props }">
                 <router-link v-if="item.route" v-slot="{ href, navigate }" :to="item.route" custom>
                     <a v-ripple :href="href" v-bind="props.action" @click="navigate">
@@ -61,9 +70,10 @@ const items = ref([
                 </a>
             </template>
         </Menu>
-        <br><br>
-        <Button style="width: 100%;"
-        @click="store.signout" 
-        severity="contrast" variant="outlined"  icon="pi pi-sign-out" label="Sign out"></Button>
     </div>
+    <br>
+    <Button style="width: 100%;"
+    @click="store.signout" 
+    severity="contrast" variant="outlined"  icon="pi pi-sign-out" label="Sign out"
+    v-if="session_data?.data?.session"></Button>
 </template>

@@ -3,19 +3,25 @@ import HomeView from '../views/HomeView.vue'
 import AuthView from '@/views/AuthView.vue'
 import RoomsView from '@/views/RoomsView.vue'
 import MembersView from '@/views/MembersView.vue'
+import CompanyView from '@/views/CompanyView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
-    // {
-    //   path: '/',
-    //   name: 'home',
-    //   component: HomeView,
-    // },
+    {
+      path: '/',
+      name: 'home',
+      // component: RoomsView,
+    },
     {
       path: '/auth',
       name: 'auth',
       component: AuthView,
+    },
+    {
+      path: '/company',
+      name: 'company',
+      component: CompanyView,
     },
     {
       path: '/rooms',

@@ -4,17 +4,15 @@
         <div class="card flex justify-center">
             <Toast />
             
-            <Form v-slot="$form" :initialValues :resolver @submit="onFormSubmit" class="flex flex-col gap-4 w-full sm:w-56">
+            <Form v-slot="$form" :initialValues :resolver @submit="onFormSubmit" class="flex flex-col gap-4 w-full sm:w-200">
                 <div class="flex flex-col gap-1">
                     <InputText name="room_name" v-model="room_name" type="text" placeholder="Room Name" fluid />
                     <Message v-if="$form.room_name?.invalid" severity="error" size="small" variant="simple">{{ $form.room_name.error?.message }}</Message>
                 </div>
-                <br>
-                 <div class="card flex justify-center" style="width: 100%;overflow: auto;">
+                 <div class="card flex justify-center" style="width: 100%;">
                     <MultiSelect v-model="selected_members" display="chip" :options="members_updated" optionLabel="email_name" filter placeholder="Select Members"
-                        class="w-full md:w-80" style="min-width: 100%;" />
+                        class="w-full md:w-80" style="min-width: 100%;max-width: 100%;" />
                 </div>
-                <br>
                 <Button type="submit" severity="secondary" label="Create" style="width: 100%;" @click="add_room" />
             </Form>
         </div>
@@ -36,7 +34,7 @@
                         <MultiSelect :modelValue="columns_to_show" :options="columns" @update:modelValue="on_column_select"
                             display="chip" placeholder="Select Columns to display" />
                     </IconField>
-                    <Button style="width: max-content;position: absolute;right: 1rem;top: 0px;" icon="pi pi-refresh" @click="get_rooms" label="Refresh Rooms" />
+                    <Button style="width: max-content;position: absolute;left: 1rem;top: 0px;" icon="pi pi-refresh" @click="get_rooms" label="Refresh Rooms" />
                 </div>
             </template>
             <template #empty> No customers found. </template>
@@ -93,14 +91,15 @@
               field="access_list_json" filterField="access_list" style="min-width: 12rem">
                 <template #body="{ data }">
                     <div class="flex items-center gap-2">
-                        <Message severity="success" style="margin: 0px;">{{ data?.name }}</Message>
+                        <tag severity="success">{{ data?.name }}</tag>
+                        <tag severity="info">members count: {{ data?.access_list.length }}</tag>
                         <!-- <span>{{ data?.access_list }}</span> -->
-                        <DataTable :value="data?.access_list" tableStyle="min-width: 50rem">
+                    </div>
+                        <DataTable :value="data?.access_list" tableStyle="min-width: 50rem" style="max-height: 200px;overflow: auto;">
                             <Column field="users.full_name" header="Name"></Column>
                             <Column field="users.email" header="Email"></Column>
-                            <Column field="user_id" header="user_id"></Column>
+                            <!-- <Column field="user_id" header="user_id"></Column> -->
                         </DataTable>
-                    </div>
                 </template>
                 <!-- <template #filter="{ filterModel, filterCallback }">
                     <InputText v-model="filterModel.value" type="text" @input="filterCallback()" placeholder="Search by id" />

@@ -5,12 +5,15 @@ import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
 import Components from 'unplugin-vue-components/vite';
 import {PrimeVueResolver} from '@primevue/auto-import-resolver';
+import tailwindcss from '@tailwindcss/vite'
+
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
     vue(),
     vueDevTools(),
+    tailwindcss(),
     Components({
       resolvers: [
         PrimeVueResolver()
@@ -22,4 +25,7 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     },
   },
+  build: {
+    target: 'chrome114' // Electron 27 runs on Chrome 114
+  }
 })

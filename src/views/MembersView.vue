@@ -1,8 +1,9 @@
 <template>
     <div style="max-width: 100%;text-wrap: pretty;">
         <h4>Add Members</h4>
+        <br>
         
-        <div style="display: flex;gap: 1rem;">
+        <div style="display: flex;gap: 1rem;" class="card">
             <FloatLabel variant="on">
                 <InputText id="on_label" v-model="user_email" />
                 <label for="on_label">Member email</label>
@@ -23,7 +24,7 @@
     <br><br>
     <!-- <Button @click="get_members" label="Refresh members" icon="pi pi-refresh" severity="secondary"></Button> -->
     <br><br>
-    <div class="card flex flex-center">
+    <div class="card">
         <DataTable :value="members" tableStyle="min-width: 50rem"
         v-model:filters="filters"
         sortMode="multiple" paginator :rows="10"
@@ -38,7 +39,7 @@
                         </InputIcon>
                         <InputText v-model="filters['global'].value" placeholder="Keyword Search" />
                     </IconField>
-                    <Button style="width: max-content;position: absolute;right: 1rem;top: 0px;" icon="pi pi-refresh" @click="get_members" label="Refresh Members" />
+                    <Button style="width: max-content;position: absolute;left: 1rem;top: 0px;" icon="pi pi-refresh" @click="get_members" label="Refresh Members" />
                 </div>
             </template>
 

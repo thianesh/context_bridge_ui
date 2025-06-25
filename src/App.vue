@@ -1,14 +1,15 @@
 <script setup>
 import { useDialog } from 'primevue';
 import { RouterLink, RouterView, useRoute } from 'vue-router'
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import sidebar from './components/sidebar.vue';
 import rightbar from './components/rightbar.vue';
 import HomeView from './views/HomeView.vue';
 import { useStorage } from '@vueuse/core'
 import loader from './components/loader.vue';
+import router from '@/router';
 
-const isDark = useStorage('theme', false) 
+const isDark = useStorage('theme', false)
 
 const route = useRoute()
 const isHomeRoute = computed(() => route.path === '/')
@@ -17,26 +18,44 @@ const isHomeRoute = computed(() => route.path === '/')
 import { root_store } from '@/stores/root_store'
 import { storeToRefs } from 'pinia'
 const store = root_store()
-const {rooms, members, loader_object} = storeToRefs(store)
+const { rooms, members, loader_object, companyId } = storeToRefs(store)
 
-async function get_members(){
+async function get_members() {
   members.value = await store.get_members()
+  store.get_companies()
 }
 
-function get_rooms(){
-    store.get_rooms()
+function get_rooms() {
+  store.get_rooms()
 }
 onMounted(() => {
-    let is_dark_already = document.documentElement.classList.contains('my-app-dark');
-    if(isDark.value != is_dark_already) toggleDarkMode()
+  let is_dark_already = document.documentElement.classList.contains('my-app-dark');
+  if (isDark.value != is_dark_already) toggleDarkMode()
 
-    if(!members.value?.length) {
-        get_members()
-    }
-    if(!rooms.value?.length) {
-      get_rooms()
-    }
-  });
+  if (!members.value?.length) {
+    get_members()
+  }
+  if (!rooms.value?.length) {
+    get_rooms()
+  }
+
+  if (window.electronAPI) {
+    // Listen for heartbeat from backend
+    window.electronAPI.onBackendHeartbeat((msg) => {
+      console.log("💓 Message:", msg);
+    });
+
+    // Send heartbeat to backend every 5s
+    setInterval(() => {
+      console.log("💓 Sending heartbeat to backend...");
+      window.electronAPI.sendHeartbeat();
+    }, 5000);
+  }
+  else {
+    console.warn('⚠️ electronAPI is undefined');
+  }
+
+});
 
 function toggleDarkMode() {
   isDark.value = document.documentElement.classList.toggle('my-app-dark');
@@ -52,31 +71,31 @@ function toggleDarkMode() {
       <sidebar></sidebar>
     </div>
     <!-- main container -->
-     <div class="main-container">
+    <div class="main-container">
 
-        <div :style="{ 
-          visibility: isHomeRoute ? 'visible' : 'hidden',
-          position: isHomeRoute ? 'static' : 'fixed',
-            }">
-          <HomeView />
-        </div>
-        <RouterView/>
+      <div :style="{
+        visibility: isHomeRoute ? 'visible' : 'hidden',
+        position: isHomeRoute ? 'static' : 'fixed',
+      }">
+        <HomeView />
+      </div>
+      <RouterView />
 
-      </div>
-      
-      <!-- right container -->
-      <div class="right-container">
-        <rightbar></rightbar>
-      </div>
-    </div>
-    
-    <div style="position: fixed;right: 2rem;top: 2rem;">
-      <Button v-show="isDark" label="" icon="pi pi-moon" @click="toggleDarkMode()" size="small"/>
-      <Button v-show="!isDark" label="" icon="pi pi-sun" @click="toggleDarkMode()" size="small"/>
     </div>
 
-    <loader v-if="loader_object.length > 0"></loader>
-  
+    <!-- right container -->
+    <div class="right-container">
+      <rightbar></rightbar>
+    </div>
+  </div>
+
+  <div style="position: fixed;right: 2rem;top: 2rem;">
+    <Button v-show="isDark" label="" icon="pi pi-moon" @click="toggleDarkMode()" size="small" />
+    <Button v-show="!isDark" label="" icon="pi pi-sun" @click="toggleDarkMode()" size="small" />
+  </div>
+
+  <loader v-if="loader_object.length > 0"></loader>
+
 </template>
 
 <style scoped>
@@ -88,19 +107,23 @@ function toggleDarkMode() {
   margin: auto;
   gap: 4rem;
 }
+
 .main-container {
   width: 100%;
   max-width: 1600px;
   overflow: auto;
 }
+
 .left-container {
   max-width: 200px;
   width: 100%;
 }
+
 .right-container {
   max-width: 200px;
   width: 100%;
 }
+
 .background {
   z-index: -100;
   position: fixed;
@@ -120,5 +143,4 @@ function toggleDarkMode() {
   width: 100%;
   background-color: white;
 }
-
 </style>

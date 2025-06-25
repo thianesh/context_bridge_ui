@@ -1,19 +1,27 @@
 import { ref, computed } from "vue";
 import { defineStore } from "pinia";
 import { createClient } from "@supabase/supabase-js";
+import { useStorage } from '@vueuse/core'
 
-const supabaseUrl = "http://localhost:8000";
+const supabaseUrl = `http://${window.location.hostname}:8000`;
 const supabaseKey =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzQ4MTExNDAwLCJleHAiOjE5MDU4Nzc4MDB9.bPYz0mOA0gSltQQK6V7PLeJuu81B-d7wb4wpgwDKt0E";
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 export const root_store = defineStore("root", () => {
+
+  const display_preference = useStorage('display_preference', {"minimal": false}) 
+
   const count = ref(0);
   const session_data = ref({});
   const members = ref([]);
   const company_details = ref();
   const rooms = ref([]);
+  const system_input_member_id = ref("")
+  const allow_pc_control = ref(false)
 
+  const companyId = useStorage('company_id')
+  
   supabase.auth
     .getSession()
     .then((data) => (session_data.value = data))
@@ -41,7 +49,23 @@ export const root_store = defineStore("root", () => {
     }
   }
 
+    async function signInWithEmail(email, password) {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email,
+      password: password,
+    })
+
+    if (error) {
+      console.error("Sign in error:", error)
+      return { success: false, error: error.message }
+    } else {
+      console.log("Sign in successful:", data)
+      return { success: true, data: data }
+    }
+  }
+
   async function signout() {
+    companyId.value = ""
     const { error } = await supabase.auth.signOut();
     if (error) {
       console.error("Sign-out error:", error.message);
@@ -59,6 +83,7 @@ export const root_store = defineStore("root", () => {
   }
 
   async function get_members() {
+    if(!companyId.value) return
     const user = await supabase.auth.getUser();
     const userId = user.data.user?.id;
     console.log(userId);
@@ -75,13 +100,11 @@ export const root_store = defineStore("root", () => {
     //   return;
     // }
 
-    const companyId = "73056d03-3ed0-4d14-a024-575a966b67b6";
-
     const { data: members_, error: membersErr } = await supabase
       .from("company_members")
       // .select('user_id,role')
       .select("user_id,role, users(email, full_name)")
-      .eq("company_id", companyId);
+      .eq("company_id", companyId.value);
 
     if (membersErr) {
       console.error("Error fetching company members:", membersErr.message);
@@ -110,9 +133,9 @@ export const root_store = defineStore("root", () => {
   }
 
   async function add_member(user_email, user_role) {
-    let company = await get_company();
+    // let company = await get_company();
 
-    async function addCompanyMember(email, role, companyId) {
+    async function addCompanyMember(email, role, company_id) {
       // Step 1: Lookup user_id from email
       const { data: userLookup, error: lookupError } = await supabase
         .from("users") // This is your view over `auth.users`
@@ -131,7 +154,7 @@ export const root_store = defineStore("root", () => {
       const { error: insertError } = await supabase
         .from("company_members")
         .insert({
-          company_id: companyId,
+          company_id: company_id,
           user_id: userId,
           role: role,
         });
@@ -144,13 +167,15 @@ export const root_store = defineStore("root", () => {
       return { success: true };
     }
 
-    await addCompanyMember(user_email, user_role, company.id);
+    await addCompanyMember(user_email, user_role, companyId.value);
   }
 
   async function get_rooms() {
+    if(!companyId.value) return
     const { data: rooms_, error: roomsErr } = await supabase
       .from("rooms")
-      .select("*");
+      .select("*")
+      .eq("company_id", companyId.value);
 
     if (roomsErr) {
       alert("Unable to get the user|company details.");
@@ -173,8 +198,8 @@ export const root_store = defineStore("root", () => {
   async function create_room(room_name, room_members) {
     const { error: insertError } = await supabase.from("rooms").insert({
       name: room_name,
-      company_id: companyId,
-      created_by: userId,
+      company_id: companyId.value,
+      created_by: session_data.value.data.session.user.id,
       access_list: room_members.map((member) => member.user_id),
     });
 
@@ -203,6 +228,31 @@ export const root_store = defineStore("root", () => {
     }
   }
 
+  const my_company = ref({})
+  const companies_im_partof = ref([])
+
+  async function get_companies(){
+    if (!session_data.value?.data?.session?.user?.id) return
+    
+    const { data: company, error: errorCompany } = await supabase.from("companies").select("*").eq("owner_id", session_data.value.data.session.user.id)
+    .limit(1)
+    .maybeSingle();
+
+    my_company.value = company;
+
+    const {data: companies, error: errorCompanies} = await supabase.from("company_members").select("*")
+    .eq("user_id", session_data.value.data.session.user.id)
+    
+    companies_im_partof.value = companies
+    .filter(company => company.company_id != my_company.value?.id)
+
+    companies_im_partof.value.forEach(async (item) => {
+      const { data: companyData } = await supabase.from("company_summary_view").select("*").eq("company_id", item.company_id).limit(1).maybeSingle();
+      item.companyData = companyData;
+      console.log(item);
+    })
+  }
+
   return {
     count,
     doubleCount,
@@ -221,5 +271,13 @@ export const root_store = defineStore("root", () => {
     loader_object,
     add_loader_message,
     remove_loader_message,
+    display_preference,
+    my_company,
+    companies_im_partof,
+    get_companies,
+    companyId,
+    system_input_member_id,
+    allow_pc_control,
+    signInWithEmail
   };
 });
