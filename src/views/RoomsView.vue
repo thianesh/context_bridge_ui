@@ -242,7 +242,6 @@ const onFormSubmit = ({ valid }) => {
             summary: 'Form is submitted.',
             life: 3000
         });
-        console.log()
     }
     else {
         alert("Invalid data! Pls try again.")

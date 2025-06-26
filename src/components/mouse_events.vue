@@ -50,7 +50,7 @@ function get_pointer_lock(){
 function send_system_contronls(type, payload) {
   if (!system_input_member_id.value) return
 
-  console.log("sending pc input..")
+  // console.log("sending pc input..")
    webrtc_state.get_woc().get_data_channel().send(JSON.stringify({
     Type: "route_to",
     route_to: system_input_member_id.value,

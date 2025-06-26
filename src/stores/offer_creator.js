@@ -110,17 +110,17 @@ export class webrtc_offer_creator {
     await this.#waitForIceComplete();
     console.timeEnd("ICE Gathering...");
 
-    console.log(`[Offer from browser]: ${this.pc.localDescription.sdp}`);
+    // console.log(`[Offer from browser]: ${this.pc.localDescription.sdp}`);
     const offerB64 = btoa(this.pc.localDescription.sdp);
-    console.log(
-      "\n=== BASE-64 SDP OFFER ===\n" + offerB64 + "\n=== /BASE-64 ===\n"
-    );
+    // console.log(
+    //   "\n=== BASE-64 SDP OFFER ===\n" + offerB64 + "\n=== /BASE-64 ===\n"
+    // );
     return offerB64;
   }
 
   /** Accept a BASE-64 encoded ANSWER from the remote peer. */
   async acceptAnswerBase64(b64Answer) {
-    console.log(b64Answer);
+    // console.log(b64Answer);
     const sdp = atob(b64Answer.trim());
     const answer = new RTCSessionDescription({ type: "answer", sdp });
 

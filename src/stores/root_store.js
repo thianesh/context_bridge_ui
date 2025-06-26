@@ -3,9 +3,9 @@ import { defineStore } from "pinia";
 import { createClient } from "@supabase/supabase-js";
 import { useStorage } from '@vueuse/core'
 
-const supabaseUrl = `http://${window.location.hostname}:8000`;
+const supabaseUrl = `https://db.vldo.in`;
 const supabaseKey =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzQ4MTExNDAwLCJleHAiOjE5MDU4Nzc4MDB9.bPYz0mOA0gSltQQK6V7PLeJuu81B-d7wb4wpgwDKt0E";
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzUwNzg5ODAwLCJleHAiOjE5MDg1NTYyMDB9.P3DyzAgVDhoS5upMxHAE9_kVgSqZbKCkR0Bakc4EGC0";
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 export const root_store = defineStore("root", () => {
@@ -86,7 +86,7 @@ export const root_store = defineStore("root", () => {
     if(!companyId.value) return
     const user = await supabase.auth.getUser();
     const userId = user.data.user?.id;
-    console.log(userId);
+    // console.log(userId);
 
     // Step 1: Get company_id of the current user
     // const { data: userCompany, error: companyErr } = await supabase
@@ -109,7 +109,7 @@ export const root_store = defineStore("root", () => {
     if (membersErr) {
       console.error("Error fetching company members:", membersErr.message);
     } else {
-      console.log("Company Members:", members_);
+      // console.log("Company Members:", members_);
       members.value = members_;
       return members_;
     }
@@ -249,7 +249,7 @@ export const root_store = defineStore("root", () => {
     companies_im_partof.value.forEach(async (item) => {
       const { data: companyData } = await supabase.from("company_summary_view").select("*").eq("company_id", item.company_id).limit(1).maybeSingle();
       item.companyData = companyData;
-      console.log(item);
+      // console.log(item);
     })
   }
 
