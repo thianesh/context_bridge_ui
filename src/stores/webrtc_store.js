@@ -133,7 +133,7 @@ export const webrtc_store = defineStore('webrtc_store', () => {
                     `
                     const data = JSON.parse(msg.data)
                     if (data) {
-                        console.log("sending to electron",data)
+                        // console.log("sending to electron",data)
                         switch (data.type) {
                         case "sendMouseInputMove":
                             window.electronAPI?.sendMouseInput('move', data.payload);

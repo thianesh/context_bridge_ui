@@ -36,11 +36,11 @@ async function signInWithEmail(){
     <div class="card flex justify-center" style="padding: 2rem;width: 100%;">
         <Button icon="pi pi-google" label="Sign-In or Sign-up with google" style="margin: auto;" @click="store.google_signin"/>
     </div>
-    <div class="flex flex-col gap-2">
+    <!-- <div class="flex flex-col gap-2">
     <label for="username">Email</label>
     <InputText id="username" v-model="email" aria-describedby="username-help" />
     <label for="pass">Password</label>
     <InputText id="pass" v-model="pass" aria-describedby="username-help" />
     <Button label="Sign-in" @click="signInWithEmail"></Button>
-</div>
+</div> -->
 </template>
