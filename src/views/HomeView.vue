@@ -5,6 +5,7 @@ import TimedMessage from '../components/Timedmessages.vue'
 
 import { root_store } from '@/stores/root_store'
 import { storeToRefs } from 'pinia'
+const video_preview = ref()
 const store = root_store()
 const { session_data, members, 
   display_preference, rooms, members_updated, companyId, system_input_member_id } = storeToRefs(store)
@@ -12,7 +13,8 @@ const { session_data, members,
 async function get_members() {
   members.value = await store.get_members()
 }
-
+import { useToast } from "primevue/usetoast";
+const toast = useToast();
 // Map of user_id -> video/audio DOM refs
 const videoRefs = ref({})
 const audioRefs = ref({})
@@ -35,14 +37,15 @@ onMounted(() => {
 
 watch(session_data, (new_session)=> {
   if(session_data.value?.data?.session) {
-    
-    if(!companyId.value) {
+    console.log("CompanyId", companyId.value)
+    if(! companyId.value) {
+      console.log("NO company")
       router.push('/company')
-      return
     }
-
-    get_members()
-    start_webrtc()
+    else {
+      get_members()
+      // start_webrtc()
+    }
   }
   else router.push('/auth')
 })
@@ -175,7 +178,11 @@ function assing_dom() {
   const woc = webrtc_state.get_woc()
   // console.log(woc)
 
+  woc.video_preview = video_preview.value
   webrtc_state.add_on_message()
+
+  woc.video_preview.srcObject = woc.camStream ? woc?.camStream : woc.videoStreamBlack
+  woc.video_preview.play()
 
   woc.pc.ontrack = function (event) {
     const { track, streams } = event;
@@ -323,8 +330,6 @@ async function start_webrtc() {
     console.log("error", error);
     alert("Unable to connect to our Server, Please try again after somtime. If you face the same issue consistently. please mail at thianesh08@gmail.com")
   }
-  
-
 
 }
 
@@ -501,6 +506,7 @@ function monitorAudioLevel(audioEl, meta = {}) {
 
 <template>
   <div>
+    <Toast />
       <Button severity="primary" rounded style="margin: auto;" v-if="session_data?.data?.session">Hi {{ session_data?.data?.session?.user.user_metadata.full_name }}! ( {{ session_data?.data?.session?.user.user_metadata.email }} )</Button>
       <Button severity="warn" rounded label="You are not Signed In, click here to sign-in" @click="go_to_login" v-else></Button>
       <br><br>
@@ -713,7 +719,6 @@ function monitorAudioLevel(audioEl, meta = {}) {
                   <AccordionHeader>Send File</AccordionHeader>
                   <AccordionContent style="overflow: auto;width: 300px;">
                     <div class="" style="width: max-content;scale: 0.8;">
-                      <Toast />
                       <FileUpload name="demo[]" url="/api/upload" @upload="onAdvancedUpload($event)" :multiple="true"
                         accept="image/*" :maxFileSize="1000000">
                         <template #empty>
@@ -746,12 +751,18 @@ function monitorAudioLevel(audioEl, meta = {}) {
         </Card>
       </div>
     </div>
+
+    <Dialog :visible="true" header="Video preview" position="bottomleft" :closable="false" class="video-preview" >
+      <video controls ref="video_preview" style="max-width: 25rem;"></video>
+    </Dialog>
   </div>
 
 </template>
 
 <style scoped>
-
+.video-preview {
+  padding: 0rem;
+}
 .system-control {
   width: 100%;
   height: 100%;

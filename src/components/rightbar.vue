@@ -23,6 +23,9 @@
     <Button  label="Start Screen Share" @click="share_screen" icon="pi pi-upload"></Button>
 
     <br><br>
+    <Button  label="Stop Screen Share" @click="stop_share" icon="pi pi-times"></Button>
+
+    <br><br>
     <ToggleButton v-model="allow_pc_control" onLabel="Control ON" offLabel="Control Off" />
 
 
@@ -49,6 +52,10 @@ function toggle_minimal(){
 
 function share_screen(){
     webrtc_state?.get_woc()?.share_screen()
+}
+
+function stop_share(){
+    webrtc_state?.get_woc()?.stop_share()
 }
 </script>
 
