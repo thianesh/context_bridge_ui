@@ -13,6 +13,7 @@
                     <MultiSelect v-model="selected_members" display="chip" :options="members_updated" optionLabel="email_name" filter placeholder="Select Members"
                         class="w-full md:w-80" style="min-width: 100%;max-width: 100%;" />
                 </div>
+                
                 <Button type="submit" severity="secondary" label="Create" style="width: 100%;" @click="add_room" />
             </Form>
         </div>
@@ -34,7 +35,9 @@
                         <MultiSelect :modelValue="columns_to_show" :options="columns" @update:modelValue="on_column_select"
                             display="chip" placeholder="Select Columns to display" />
                     </IconField>
-                    <Button style="width: max-content;position: absolute;left: 1rem;top: 0px;" icon="pi pi-refresh" @click="get_rooms" label="Refresh Rooms" />
+                    <!-- <Button style="width: max-content;position: absolute;left: 1rem;top: 0px;" icon="pi pi-refresh" @click="get_rooms" label="Refresh Rooms" /> -->
+                    <span class="tab"></span>
+                    <Button icon="pi pi-refresh" @click="get_rooms" rounded />
                 </div>
             </template>
             <template #empty> No customers found. </template>
@@ -50,13 +53,20 @@
                 </template>
             </Column>
 
+             <Column v-if="columns_to_show.includes('delete')"
+            header="Delete" style="width: max-content;">
+                <template #body="{ data }">
+                    <div style="display: flex;">
+                        <Button  icon="pi pi-trash" size="small" @click="remove_room(data)" severity="danger"></Button>
+                    </div>
+                    </template>
+            </Column>
+
              <Column v-if="columns_to_show.includes('edit')"
             header="Edit" style="width: max-content;">
                 <template #body="{ data }">
                     <div style="display: flex;">
-                        <Button rounded icon="pi pi-pencil" label="Edit" severity="info"></Button> 
-                        <span class="tab"></span>
-                        <Button  icon="pi pi-trash" severity="danger"></Button>
+                        <Button @click="set_room_data_to_model(data)" icon="pi pi-pencil" size="small" label="Edit" severity="secondary"></Button> 
                     </div>
                     </template>
             </Column>
@@ -146,6 +156,36 @@
         </DataTable>
     </div>
     </div>
+
+        <Dialog v-model:visible="room_editor" modal header="Edit Profile" :style="{ width: '30rem' }">
+        <template #header>
+            <div class="inline-flex items-center justify-center gap-2">
+                <span class="font-bold whitespace-nowrap">Update room</span>
+            </div>
+        </template>
+        <div class="flex items-center gap-4 mb-4">
+            <label for="username" class="font-semibold w-24">Room Id</label>
+            <InputText id="username" class="flex-auto" v-model="update_room_id" autocomplete="off" disabled style="overflow: auto;" />
+        </div>
+        <div class="flex items-center gap-4 mb-4">
+            <label for="username" class="font-semibold w-24">Room name</label>
+            <InputText id="username" class="flex-auto" v-model="update_room_name" autocomplete="off" />
+        </div>
+        <!-- <span class="text-surface-500 dark:text-surface-400 block mb-8">members</span> -->
+        <div class="flex items-center gap-4 mb-2">
+            <label for="email" class="font-semibold w-24">Members</label>
+        </div>
+        <Tag severity="success">Total members: {{ update_members_selected?.length }}</Tag>
+        <div class="card flex justify-center" style="width: 100%;">
+            <MultiSelect v-model="update_members_selected" display="chip" :options="members_updated" optionLabel="email_name" filter placeholder="Select Members"
+                class="w-full md:w-80" style="min-width: 100%;max-width: 100%;" />
+        </div>
+        <template #footer>
+            <Button label="Cancel" text severity="secondary" @click="room_editor = false" autofocus />
+            <Button label="Save" outlined severity="secondary" @click="update_room" autofocus />
+        </template>
+    </Dialog>
+
 </template>
 
 <script setup>
@@ -160,8 +200,14 @@ const columns = [
     "id",
     "created_at",
     "room_members",
-    "edit"
+    "edit",
+    "delete"
 ]
+
+const room_editor = ref(false)
+const update_room_name = ref("")
+const update_room_id = ref("")
+const update_members_selected = ref([])
 
 import { useStorage } from '@vueuse/core'
 const columns_to_show = useStorage('columns_to_show', columns) 
@@ -197,8 +243,8 @@ const initialValues = reactive({
     room_name: ''
 });
 
-function get_rooms(){
-    store.get_rooms()
+async function get_rooms(){
+    await store.get_rooms()
 }
 
 const room_name = ref()
@@ -206,9 +252,55 @@ const selected_members = ref([])
 
 async function add_room() {
     store.add_loader_message("Info: Creating room...")
-    await store.create_room(room_name.value, selected_members.value)
+    const result = await store.create_room(room_name.value, selected_members.value)
+    toast.add({
+        severity: result.success ? 'success' : 'error',
+        summary: 'Info',
+        detail: result.success ?  `Successfully added room.` : `Please ensure you have proper access.`,
+        life: 3000 })
+    await get_rooms()
     // console.log(room_name.value, selected_members.value)
     store.remove_loader_message("Info: Creating room...")
+}
+async function set_room_data_to_model(room) {
+    room_editor.value = true
+    console.log(room)
+    update_room_name.value = room.name
+    update_room_id.value = room.id
+    update_members_selected.value = room.access_list.map(member =>  {
+        return {
+            ...member,
+            email_name: `${member?.users?.full_name} ( ${member?.users?.email} )`
+        }
+    })
+}
+
+async function update_room() {
+    store.add_loader_message("Info: Updating room...")
+    room_editor.value = false
+    const result = await store.update_room(update_room_id.value, update_room_name.value, update_members_selected.value)
+    toast.add({
+        severity: result.success ? 'success' : 'error',
+        summary: 'Info',
+        detail: result.message,
+        life: 3000 })
+    await get_rooms()
+    store.remove_loader_message("Info: Updating room...")
+}
+
+async function remove_room(room) {
+    room_editor.value = false
+    // console.log(room_id)
+    store.add_loader_message("Info: Removing room...")
+    let result = await store.remove_room(room.id)
+    toast.add({
+        severity: result ? 'success' : 'error',
+        summary: 'Info',
+        detail: result ? `${room.name} | Successfully removed room.` : `${room.name} | Please ensure you have proper access.`,
+        life: 3000 })
+    await get_rooms()
+    store.remove_loader_message("Info: Removing room...")
+
 }
 
 const formatDate = (value) => {

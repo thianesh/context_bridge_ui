@@ -23,6 +23,7 @@ export class webrtc_offer_creator {
   ) {
     this.pc = new RTCPeerConnection(rtcConfig);
     this.dc = this.pc.createDataChannel("data");
+    this.video_preview;
     this.dc.onopen = () => {
       console.log("[DC] open");
       setInterval(
@@ -196,6 +197,8 @@ export class webrtc_offer_creator {
       const camStream = await navigator.mediaDevices.getUserMedia({
         video: true,
       });
+      this.camStream = camStream
+
       camStream.getVideoTracks().forEach((track) => stream.addTrack(track));
       gotVideo = true;
     } catch (e) {
@@ -209,10 +212,15 @@ export class webrtc_offer_creator {
 
     // Add black video if missing
     if (!gotVideo) {
-      stream.addTrack(createBlackVideoTrack());
+      stream.addTrack(this.createBlackVideoTrack());
     }
 
     return stream;
+  }
+
+  async stop_share() {
+    this.switchToCameraOrFallback()
+    this.video_preview.srcObject = this.videoStreamBlack
   }
 
   async share_screen() {
@@ -220,6 +228,9 @@ export class webrtc_offer_creator {
       video: true,
       audio: true,
     });
+
+    this.video_preview.srcObject = screen
+    this.video_preview.play()
 
     const videoSender = this.pc
       .getSenders()
@@ -268,6 +279,8 @@ export class webrtc_offer_creator {
       const videoStream = await navigator.mediaDevices.getUserMedia({
         video: true,
       });
+      this.video_preview.srcObject = videoStream
+      this.video_preview.play()
       videoTrack = videoStream.getVideoTracks()[0];
       gotVideo = true;
     } catch (err) {
@@ -279,7 +292,7 @@ export class webrtc_offer_creator {
     }
 
     if (!gotVideo) {
-      videoTrack = createBlackVideoTrack();
+      videoTrack = this.createBlackVideoTrack();
     }
 
     // Replace audio track in peer connection
@@ -300,6 +313,27 @@ export class webrtc_offer_creator {
       console.log("📹 Replaced video track");
     }
   }
+
+  createBlackVideoTrack(width = 640, height = 480, fps = 10) {
+    const canvas = Object.assign(document.createElement("canvas"), {
+      width,
+      height,
+    });
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "black";
+    ctx.fillRect(0, 0, width, height);
+
+    // keep the video stream alive
+    setInterval(() => {
+      ctx.fillRect(0, 0, width, height);
+    }, 1000 / fps);
+    
+    this.videoStreamBlack = canvas.captureStream(fps)
+
+    const track = this.videoStreamBlack.getVideoTracks()[0];
+    track.enabled = false;
+    return track;
+  }
 }
 
 function createSilentAudioTrack() {
@@ -317,21 +351,4 @@ function createSilentAudioTrack() {
   return track;
 }
 
-function createBlackVideoTrack(width = 640, height = 480, fps = 10) {
-  const canvas = Object.assign(document.createElement("canvas"), {
-    width,
-    height,
-  });
-  const ctx = canvas.getContext("2d");
-  ctx.fillStyle = "black";
-  ctx.fillRect(0, 0, width, height);
 
-  // keep the video stream alive
-  setInterval(() => {
-    ctx.fillRect(0, 0, width, height);
-  }, 1000 / fps);
-
-  const track = canvas.captureStream(fps).getVideoTracks()[0];
-  track.enabled = false;
-  return track;
-}

@@ -132,43 +132,34 @@ export const root_store = defineStore("root", () => {
     return userCompany;
   }
 
-  async function add_member(user_email, user_role) {
-    // let company = await get_company();
+// supabase-js ≥ 2.50.x
+async function add_member(user_email, user_role) {
+  const { data: userLookup, error: lookupError } = await supabase
+    .from('users')            // view over auth.users
+    .select('id')
+    .eq('email', user_email)
+    .maybeSingle();          // returns null instead of throwing if not found
 
-    async function addCompanyMember(email, role, company_id) {
-      // Step 1: Lookup user_id from email
-      const { data: userLookup, error: lookupError } = await supabase
-        .from("users") // This is your view over `auth.users`
-        .select("id")
-        .eq("email", email)
-        .single();
-
-      if (lookupError) {
-        console.error("User lookup failed:", lookupError.message);
-        return { error: "User not found or lookup failed." };
-      }
-
-      const userId = userLookup.id;
-
-      // Step 2: Insert into company_members
-      const { error: insertError } = await supabase
-        .from("company_members")
-        .insert({
-          company_id: company_id,
-          user_id: userId,
-          role: role,
-        });
-
-      if (insertError) {
-        console.error("Insert failed:", insertError.message);
-        return { error: insertError.message };
-      }
-
-      return { success: true };
-    }
-
-    await addCompanyMember(user_email, user_role, companyId.value);
+  if (lookupError || !userLookup) {
+    console.error('User lookup failed:', lookupError?.message ?? 'no match');
+    return { status: false, message: "User not found. Please ensure user signed up in our platform."}            
   }
+
+  const { error: insertError } = await supabase
+    .from('company_members')
+    .insert({
+      company_id: companyId.value,
+      user_id:     userLookup.id,
+      role:        user_role,
+    })
+
+  if (insertError) {
+    console.error('Insert failed:', insertError.message);
+    return { status: false, message: "Please make sure you have proper access."} 
+  }
+
+  return { status: true, message: "Successfully added the user."}
+}
 
   async function get_rooms() {
     if(!companyId.value) return
@@ -205,10 +196,38 @@ export const root_store = defineStore("root", () => {
 
     if (insertError) {
       console.error("Insert failed:", insertError.message);
-      return { error: insertError.message };
+      return { error: insertError.message, success: false };
     }
 
     return { success: true };
+  }
+
+  async function update_room(room_id, room_name, room_members) {
+    if (!room_name?.trim()) {
+      return { success: false, message: 'update_room: empty room name' }
+    }
+
+    const userIds = room_members
+      .map(m => m.user_id)
+      .filter(Boolean);            // remove null/undefined
+
+    const { data, error } = await supabase
+      .from('rooms')
+      .update({
+        name: room_name,
+        access_list: userIds,      // column type must be uuid[] or text[]
+      })
+      .match({ company_id: companyId.value, id: room_id })
+      .select('id');               // ask PostgREST to return the IDs it touched
+
+    if (error) {
+      console.error('Room update failed:', error.message);
+      return { success: false, message: 'Please ensure you have proper access' }
+    }
+
+    if((data?.length ?? 0) > 0 ) {
+      return { success: true, message: 'Successfully Updated room | ' + room_name }
+    }
   }
 
   const loader_object = ref([]);
@@ -253,7 +272,71 @@ export const root_store = defineStore("root", () => {
     })
   }
 
+async function remove_member(userId) {
+  console.log(userId)
+  const { error, data } = await supabase          // <- destructure what you use
+    .from('company_members')
+    .delete()
+    // .throwOnError()               // optional: bubble the error
+    .match({ user_id: userId, company_id: companyId.value })  // more concise
+    .select('*', { count: 'exact' });            // keep track of how many
+
+  if (error) {
+    console.error('Delete failed:', error);      // make debugging easier
+    return false;
+  }
+
+  // If you care whether anything was *actually* removed:
+  return (data?.length ?? 0) > 0;
+}
+
+async function remove_room(room_id) {
+  const { error, data } = await supabase          // <- destructure what you use
+    .from('rooms')
+    .delete()
+    .match({ id: room_id, company_id: companyId.value })  // more concise
+    .select('*', { count: 'exact' });            // keep track of how many
+
+  if (error) {
+    console.error('Delete failed:', error);      // make debugging easier
+    return false;
+  }
+
+  // If you care whether anything was *actually* removed:
+  return (data?.length ?? 0) > 0;
+}
+
+// supabase-js ≥ 2.50.x
+async function update_member(member_id, new_role){
+  // ── 1. Validate role ───────────────────────────────────────────────
+  if (new_role !== 'admin' && new_role !== 'member') {
+    return { status: false, message: "The role can only be 'admin' or 'member'"};
+  }
+
+  // ── 2. Perform the update ──────────────────────────────────────────
+  const { data, error } = await supabase
+    .from('company_members')
+    .update({ role: new_role })
+    .match({ user_id: member_id, company_id: companyId.value })
+    .select('user_id');        // fetch primary key(s) so we know if anything changed
+
+  if (error) {
+    console.error('Update failed:', error.message);
+    return { status: false, message: "Please ensure you have required access"};
+  }
+
+  if( (data?.length ?? 0) > 0) {
+    return { status: true, message: "Successfully updated the user details."};
+  }
+  return { status: false, message: "Please ensure you have required access"};
+}
+
+
   return {
+    update_room,
+    remove_room,
+    update_member,
+    remove_member,
     count,
     doubleCount,
     increment,
