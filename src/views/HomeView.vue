@@ -44,7 +44,7 @@ watch(session_data, (new_session)=> {
     }
     else {
       get_members()
-      // start_webrtc()
+      start_webrtc()
     }
   }
   else router.push('/auth')
