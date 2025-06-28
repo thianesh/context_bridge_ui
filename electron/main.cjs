@@ -14,13 +14,18 @@ function createWindow () {
     width: 800,
     height: 600,
     webPreferences: {
-      // contextIsolation: true,
-      // nodeIntegration: false,
+      contextIsolation: true,
+      nodeIntegration: false,
+      enableRemoteModule: false,
+      sandbox: false,
+      media: true,
       preload: path.join(__dirname, 'preload.cjs'),
     }
   });
 
-  win.loadURL(`http://localhost:5173`);
+  // win.loadURL(`http://localhost:5173`);
+  win.loadURL(`https://jomeet.vldo.in/`);
+  // win.loadFile('file:///home/thianesh/projects/context_bridge_ui/dist/index.html')
 }
 
 let sources
