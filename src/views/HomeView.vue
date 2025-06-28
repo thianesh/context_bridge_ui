@@ -110,6 +110,15 @@ function set_audio_route_rooms(id, state) {
   }
 }
 
+function turn_off_all_media() {
+    [ audio_route.value,
+    video_route.value,
+    audio_route_rooms.value,
+    video_route_rooms.value ].forEach(obj => {
+      Object.keys(obj).forEach(key => obj[key] = false)
+    })
+}
+
 watch(audio_route, newVal => {
   // console.log('updated', newVal)
   // Signaling
@@ -506,9 +515,52 @@ function monitorAudioLevel(audioEl, meta = {}) {
 
 <template>
   <div>
+    <p severity="secondary" rounded style="margin: auto;" v-if="session_data?.data?.session">Hi {{ session_data?.data?.session?.user.user_metadata.full_name }}! ( {{ session_data?.data?.session?.user.user_metadata.email }} )</p>
+
+    <div class="card flex flex-wrap gap-2 mb-2 mt-4">
+      <!-- <Message size="small" severity="secondary" style="width: max-content;">
+      sending audio <tag :severity="Object.keys(audio_route).filter(key => audio_route[key]).length ? 'warn' : 'success'">{{ Object.keys(audio_route).filter(key => audio_route[key]).length }}</tag>
+      </Message>
+     
+      receiving video: {{ Object.keys(video_route).length }} |
+      rooms receiving video: {{ Object.keys(audio_route_rooms).length }} |
+      rooms receiving video: {{ Object.keys(video_route_rooms).length }}  -->
+
+      <Chip class="py-0 pl-0 pr-4" style="background-color: transparent;">
+          <span class="bg-primary text-primary-contrast rounded-full w-8 h-8 flex items-center justify-center">
+            {{ Object.keys(audio_route).filter(key => audio_route[key]).length }}
+          </span>
+          <span class="ml-2 font-medium">sending audio</span>
+      </Chip>
+
+       <Chip class="py-0 pl-0 pr-4" style="background-color: transparent;">
+          <span class="bg-primary text-primary-contrast rounded-full w-8 h-8 flex items-center justify-center">
+            {{ Object.keys(video_route).filter(key => video_route[key]).length }}
+          </span>
+          <span class="ml-2 font-medium">sending video</span>
+      </Chip>
+
+       <Chip class="py-0 pl-0 pr-4" style="background-color: transparent;">
+          <span class="bg-primary text-primary-contrast rounded-full w-8 h-8 flex items-center justify-center">
+            {{ Object.keys(audio_route_rooms).filter(key => audio_route_rooms[key]).length }}
+          </span>
+          <span class="ml-2 font-medium">sending video</span>
+      </Chip>
+
+       <Chip class="py-0 pl-0 pr-4" style="background-color: transparent;">
+          <span class="bg-primary text-primary-contrast rounded-full w-8 h-8 flex items-center justify-center">
+            {{ Object.keys(video_route_rooms).filter(key => video_route_rooms[key]).length }}
+          </span>
+          <span class="ml-2 font-medium">sending video</span>
+      </Chip>
+
+      <Chip class="py-0 pl-0 pr-4" style="background-color: transparent;">
+        <Button label="stop all" severity="secondary" @click="turn_off_all_media()" outlined></Button>
+      </Chip>
+      
+    </div>
     <Toast />
-      <Button severity="primary" rounded style="margin: auto;" v-if="session_data?.data?.session">Hi {{ session_data?.data?.session?.user.user_metadata.full_name }}! ( {{ session_data?.data?.session?.user.user_metadata.email }} )</Button>
-      <Button severity="warn" rounded label="You are not Signed In, click here to sign-in" @click="go_to_login" v-else></Button>
+      <Button severity="warn" rounded label="You are not Signed In, click here to sign-in" @click="go_to_login" v-if="!session_data?.data?.session"></Button>
       <br><br>
 
       <Message severity="error" v-if="!companyId" @click="router.push('/company')">Please select the space you want to continue with.</Message>
@@ -781,6 +833,7 @@ audio::-moz-media-controls-time-remaining-display {
 .online {
   opacity: 1;
 }
+
 
 .offline {
   /* opacity: 0.6; */

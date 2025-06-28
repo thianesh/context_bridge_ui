@@ -4,5 +4,6 @@
 body {
   padding: 2rem;
   font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--p-primary-50);
 }
 
