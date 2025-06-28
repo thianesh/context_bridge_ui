@@ -1,13 +1,13 @@
 <script setup>
 
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import { useRouter } from 'vue-router';
 import { Button } from "primevue";
 import { root_store } from '@/stores/root_store'
 import { storeToRefs } from 'pinia'
 const store = root_store()
 const { session_data, members, 
-  display_preference, rooms, members_updated, companyId } = storeToRefs(store)
+  display_preference, rooms, members_updated, companyId, is_admin } = storeToRefs(store)
 
 const router = useRouter();
 
@@ -71,6 +71,8 @@ const items = ref([
             </template>
         </Menu>
     </div>
+    <br>
+    <Message class="text-center" :severity="is_admin ? 'success' : 'secondary'">Role: {{ is_admin ? "Admin" : "Member" }}</Message>
     <br>
     <Button style="width: 100%;"
     @click="store.signout" 

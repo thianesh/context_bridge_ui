@@ -279,6 +279,7 @@ export class webrtc_offer_creator {
       const videoStream = await navigator.mediaDevices.getUserMedia({
         video: true,
       });
+      this.camStream = videoStream
       this.video_preview.srcObject = videoStream
       this.video_preview.play()
       videoTrack = videoStream.getVideoTracks()[0];

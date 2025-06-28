@@ -11,6 +11,7 @@ export const webrtc_store = defineStore('webrtc_store', () => {
     const audio_room_events = ref({})
     const media_route_video = ref({})
     const media_route_audio = ref({})
+    const allow_pc_control = useStorage("allow_pc_control", false)
     const pc_control_list = useStorage('pc_control_list',{})
 
     async function create_root_offer(){
@@ -112,6 +113,9 @@ export const webrtc_store = defineStore('webrtc_store', () => {
             }
 
             if (msg.Type === 'route_to'){
+                
+                if (!allow_pc_control.value) return;
+
                 if(pc_control_list.value[msg.route_from]){
                     `
                     {Type: 'route_to', data: '{"type":"sendMouseInputMove","payload":{"x":683,"y":760}}', 
@@ -170,7 +174,8 @@ export const webrtc_store = defineStore('webrtc_store', () => {
     video_room_events,
     media_route_video,
     media_route_audio,
-    pc_control_list
+    pc_control_list,
+    allow_pc_control
 
   }
 })

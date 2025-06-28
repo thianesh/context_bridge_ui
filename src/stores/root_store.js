@@ -1,7 +1,7 @@
-import { ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
 import { defineStore } from "pinia";
 import { createClient } from "@supabase/supabase-js";
-import { useStorage } from '@vueuse/core'
+import { useStorage, watchWithFilter } from '@vueuse/core'
 
 const supabaseUrl = `http://${window.location.hostname}:8000`;
 const supabaseKey =
@@ -18,7 +18,6 @@ export const root_store = defineStore("root", () => {
   const company_details = ref();
   const rooms = ref([]);
   const system_input_member_id = ref("")
-  const allow_pc_control = ref(false)
 
   const companyId = useStorage('company_id')
   
@@ -331,8 +330,25 @@ async function update_member(member_id, new_role){
   return { status: false, message: "Please ensure you have required access"};
 }
 
+const is_admin = ref(false)
+
+watch(members, ()=>{
+  // console.log("session changed")
+  if(session_data.value?.data?.session?.user) {
+    members.value.forEach(member => {
+      // console.log(member.user_id,session_data.value?.data?.session?.user.id)
+      if(member.user_id == session_data.value?.data?.session?.user.id) {
+        // console.log(member.role)  
+        if(member.role == "admin"){
+          is_admin.value = true
+        }
+      }
+    })
+  }
+})
 
   return {
+    is_admin,
     update_room,
     remove_room,
     update_member,
@@ -360,7 +376,6 @@ async function update_member(member_id, new_role){
     get_companies,
     companyId,
     system_input_member_id,
-    allow_pc_control,
     signInWithEmail
   };
 });
