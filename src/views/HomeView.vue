@@ -30,6 +30,7 @@ const visible = ref(false)
 const video_element = ref()
 
 import mouse_events from '@/components/mouse_events.vue';
+import { useStorage } from '@vueuse/core';
 
 onMounted(() => {
 
@@ -44,7 +45,8 @@ watch(session_data, (new_session)=> {
     }
     else {
       get_members()
-      start_webrtc()
+      check_system()
+      // start_webrtc()
     }
   }
   else router.push('/auth')
@@ -52,6 +54,85 @@ watch(session_data, (new_session)=> {
 
 function go_to_login(){
   router.push('/auth')
+}
+
+let timer;
+const secondsRemaining = ref(60)
+
+function startCountdown() {
+          timer = setInterval(() => {
+            if (secondsRemaining.value > 0) {
+              secondsRemaining.value--;
+            } else {
+              clearInterval(timer);
+            }
+          }, 1000);
+  }
+const delay = ms => new Promise(res => setTimeout(res, ms));
+
+const usage_history = useStorage("usage", {
+  cpu: 0,
+  ram: 0
+})
+
+async function check_system() {
+
+  if(usage_history.value.cpu > 90) {
+    await check_system_75()
+    return
+  }
+
+  const myHeaders = new Headers();
+  myHeaders.append("Authorization", "health-checkup");
+
+  const requestOptions = {
+    method: "GET",
+    headers: myHeaders,
+    redirect: "follow"
+  };
+
+  let response = await fetch("https://jo.vldo.in/health-check", requestOptions)
+  let usage = await response.json()
+  console.log(usage)
+  usage_history.value = usage
+
+  if(usage.cpu > 90) {
+    store.add_loader_message("We are experiencing high demand. Please try again in few minutes. We will re-chech in 45s")
+    await delay(45000)
+    store.remove_loader_message("We are experiencing high demand. Please try again in few minutes. We will re-chech in 45s")
+    await check_system_65()
+  }
+  else {
+    start_webrtc()
+  }
+
+}
+
+async function check_system_75() {
+  const myHeaders = new Headers();
+  myHeaders.append("Authorization", "health-checkup");
+
+  const requestOptions = {
+    method: "GET",
+    headers: myHeaders,
+    redirect: "follow"
+  };
+
+  let response = await fetch("https://jo.vldo.in/health-check", requestOptions)
+  let usage = await response.json()
+  console.log(usage)
+  usage_history.value = usage
+
+  if(usage.cpu > 75) {
+    store.add_loader_message("We are experiencing high demand. Please try again in few minutes. We will re-chech in 45s")
+    await delay(45000)
+    store.remove_loader_message("We are experiencing high demand. Please try again in few minutes. We will re-chech in 45s")
+    await check_system_75()
+  }
+  else {
+    start_webrtc()
+  }
+
 }
 
 const offer_sdp = ref()

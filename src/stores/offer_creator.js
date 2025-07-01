@@ -41,6 +41,10 @@ export class webrtc_offer_creator {
 
         if (this.negotiating) return;
 
+        if (msg.Type === "reload"){
+          window.location.reload();
+        }
+
         if (msg.Type === "offer") {
           this.negotiating = true;
           this.dc.send("Got the offer will be accepted soon!");
