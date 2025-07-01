@@ -1,0 +1,24 @@
+{
+  "appId": "com.waveogramlabs.jomeet",
+  "productName": "Jo Meet",
+  "directories": {
+    "output": "build/release",
+    "buildResources": "build"
+  },
+  "files": [
+    "build/dist/**/*",
+    "main.cjs"
+  ],
+  "win": {
+    "target": "nsis"
+  },
+  "linux": {
+    "target": ["AppImage", "deb"],
+    "category": "Utility",
+    "maintainer": "Thianesh Urumandampalayam Krishnan <thianesh08@gmail.com"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true
+  }
+}

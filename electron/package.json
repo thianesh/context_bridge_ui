@@ -1,0 +1,24 @@
+{
+  "name": "jomeet",
+  "version": "1.0.0",
+  "main": "main.cjs",
+  "description": "JoMeet desktop app for secure remote control",
+  "author": {
+    "name": "Thianesh",
+    "email": "thianesh08@gmail.com"
+  },
+  "homepage": "https://jomeet.vldo.in",
+  "scripts": {
+    "build:electron": "electron-builder --config build-config.json",
+    "electron": "electron .",
+    "build": "electron-builder"
+  },
+  "devDependencies": {
+    "electron": "^29.0.0",
+    "electron-builder": "^24.12.0"
+  },
+  "dependencies": {
+    "@nut-tree-fork/libnut": "^4.2.6",
+    "@nut-tree-fork/nut-js": "^4.2.6"
+  }
+}
