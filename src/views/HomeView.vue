@@ -201,7 +201,7 @@ function turn_off_all_media() {
 }
 
 watch(audio_route, newVal => {
-  console.log('updated', newVal)
+  // console.log('updated', newVal)
   // Signaling
   webrtc_state.get_woc().get_data_channel().send(JSON.stringify({
     Type: "audio_route",
@@ -210,7 +210,7 @@ watch(audio_route, newVal => {
 })
 
 watch(video_route, newVal => {
-  console.log('updated', newVal)
+  // console.log('updated', newVal)
   // Signaling
   webrtc_state.get_woc().get_data_channel().send(JSON.stringify({
     Type: "video_route",
@@ -219,7 +219,7 @@ watch(video_route, newVal => {
 })
 
 watch(audio_route_rooms, newVal => {
-  console.log('updated audio room', newVal)
+  // console.log('updated audio room', newVal)
   // Signaling
   webrtc_state.get_woc().get_data_channel().send(JSON.stringify({
     Type: "audio_route_room",
@@ -228,7 +228,7 @@ watch(audio_route_rooms, newVal => {
 })
 
 watch(video_route_rooms, newVal => {
-  console.log('updated video room', newVal)
+  // console.log('updated video room', newVal)
   // Signaling
   webrtc_state.get_woc().get_data_channel().send(JSON.stringify({
     Type: "video_route_room",
@@ -264,9 +264,9 @@ setInterval(()=>{
 
 
 function assing_dom() {
-  console.log("Assigned DOM")
+  // console.log("Assigned DOM")
   const woc = webrtc_state.get_woc()
-  console.log(woc)
+  // console.log(woc)
 
   woc.video_preview = video_preview.value
   webrtc_state.add_on_message()
@@ -291,7 +291,7 @@ function assing_dom() {
         console.log("Received video stream from", my_user_id, member_user_id, media_type)
         console.log("Video refs", videoRefs.value)
         if (member_user_id in videoRefs.value) {
-          console.log("Attaching video stream to element", member_user_id, videoRefs.value[member_user_id])
+          // console.log("Attaching video stream to element", member_user_id, videoRefs.value[member_user_id])
 
           // videoRefs.value[member_user_id].pause()
           // videoRefs.value[member_user_id].srcObject = null
@@ -307,7 +307,7 @@ function assing_dom() {
         console.log("Received audio stream from", my_user_id, member_user_id, media_type)
         console.log("Audio refs", audioRefs.value)
         if (member_user_id in audioRefs.value) {
-          console.log("Attaching audio stream to element", member_user_id, audioRefs.value[member_user_id])
+          // console.log("Attaching audio stream to element", member_user_id, audioRefs.value[member_user_id])
 
           // audioRefs.value[member_user_id].pause()
           // audioRefs.value[member_user_id].srcObject = null
@@ -411,7 +411,7 @@ async function start_webrtc() {
   };
 
   try {
-    let response = await fetch(`http://${window.location.hostname}:8080/start`, requestOptions)
+    let response = await fetch(`https://jo.vldo.in/start`, requestOptions)
     let result = await response.json()
     console.log(result)
     console.log("accepting offer")

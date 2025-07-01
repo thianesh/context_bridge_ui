@@ -58,7 +58,7 @@ app.whenReady().then(async () => {
 
 // 💓 Heartbeat from frontend
 ipcMain.on('heartbeat-from-frontend', (event) => {
-  console.log('💓 Received heartbeat from frontend');
+  // console.log('💓 Received heartbeat from frontend');
   event.sender.send('heartbeat-from-backend', 'from backend');
 });
 
@@ -72,7 +72,7 @@ ipcMain.on("get-screen", (event)=> {
 // ⌨️ Keyboard input simulation
 ipcMain.on('keyboard-input', async (_, payload) => {
   const { key, isSpecial } = payload;
-  console.log('Received key:', key, 'Special:', isSpecial);
+  // console.log('Received key:', key, 'Special:', isSpecial);
 
   try {
     if (isSpecial && Key[key]) {
