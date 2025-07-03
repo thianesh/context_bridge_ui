@@ -27,3 +27,35 @@ npm run dev
 ```sh
 npm run build
 ```
+
+## ChatWidget Component
+
+`ChatWidget.vue` provides a small chat interface built with PrimeVue components.
+
+### Basic usage
+
+```vue
+<template>
+  <ChatWidget ref="chat" v-model="messages" :loading="loading" @send="onSend" />
+</template>
+
+<script setup>
+import { ref } from 'vue'
+import ChatWidget from '@/components/ChatWidget.vue'
+
+const messages = ref([])
+const loading = ref(false)
+
+function onSend(text) {
+  // handle outgoing message
+}
+</script>
+```
+
+The component exposes an `addMessage` method via `ref` so you can add incoming
+messages programmatically:
+
+```js
+const chat = ref()
+chat.value.addMessage('Hello from server')
+```
