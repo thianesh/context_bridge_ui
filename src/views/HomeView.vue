@@ -6,6 +6,7 @@ import TimedMessage from '../components/Timedmessages.vue'
 import { root_store } from '@/stores/root_store'
 import { storeToRefs } from 'pinia'
 const video_preview = ref()
+const preview_visible = ref(true)
 const store = root_store()
 const { session_data, members, 
   display_preference, rooms, members_updated, companyId, system_input_member_id } = storeToRefs(store)
@@ -39,10 +40,22 @@ onMounted(() => {
 watch(session_data, (new_session)=> {
   if(session_data.value?.data?.session) {
     console.log("CompanyId", companyId.value)
-    if(! companyId.value) {
+
+    setTimeout(()=> {
+      if (session_data.value?.data?.session) {
+          if(!companyId.value) {
+        console.log("NO company")
+        router.push('/company')
+      }
+      }
+    }, 2000)
+
+    if(!companyId.value) {
       console.log("NO company")
       router.push('/company')
     }
+
+
     else {
       get_members()
       check_system()
@@ -56,6 +69,9 @@ function go_to_login(){
   router.push('/auth')
 }
 
+function select_space() {
+  router.push('/company')
+}
 let timer;
 const secondsRemaining = ref(60)
 
@@ -886,7 +902,10 @@ function monitorAudioLevel(audioEl, meta = {}) {
     </div>
 
     <Dialog :visible="true" header="Video preview" position="bottomleft" :closable="false" class="video-preview" >
-      <video controls ref="video_preview" style="max-width: 25rem;"></video>
+      <video controls ref="video_preview" style="max-width: 25rem;" :style="{height:preview_visible ? '200px' : '0px'}"></video>
+       <template #footer>
+        <Button :label="preview_visible ? 'Hide Preview' : 'Show Preview' " text severity="secondary" @click="preview_visible = !preview_visible" />
+    </template>
     </Dialog>
   </div>
 
