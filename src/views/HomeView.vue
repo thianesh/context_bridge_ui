@@ -597,7 +597,7 @@ function monitorAudioLevel(audioEl, meta = {}) {
       if (amp > peak) peak = amp;
     }
     if (peak > 20) {
-      console.log('🔊 peak amplitude:', peak, meta, audioEl);
+      // console.log('🔊 peak amplitude:', peak, meta, audioEl);
     }
     rafId = requestAnimationFrame(loop);
   })();
