@@ -58,7 +58,7 @@ watch(session_data, (new_session)=> {
 
     else {
       get_members()
-      // check_system()
+      check_system()
       // start_webrtc()
     }
   }
