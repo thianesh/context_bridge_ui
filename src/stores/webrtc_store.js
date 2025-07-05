@@ -3,6 +3,40 @@ import { defineStore } from 'pinia'
 import {webrtc_offer_creator } from "./offer_creator"
 import { useStorage } from '@vueuse/core'
 
+function shallowCompareLevel2(obj1, obj2) {
+  const keys1 = Object.keys(obj1);
+  const keys2 = Object.keys(obj2);
+
+  // Quick check on number of top-level keys
+  if (keys1.length !== keys2.length) return false;
+
+  for (const key of keys1) {
+    if (!(key in obj2)) return false;
+
+    const val1 = obj1[key];
+    const val2 = obj2[key];
+
+    // If one is object and the other isn't, not equal
+    const isObj1 = val1 && typeof val1 === 'object';
+    const isObj2 = val2 && typeof val2 === 'object';
+
+    if (isObj1 && isObj2) {
+      const subKeys1 = Object.keys(val1);
+      const subKeys2 = Object.keys(val2);
+      if (subKeys1.length !== subKeys2.length) return false;
+
+      for (const subKey of subKeys1) {
+        if (!(subKey in val2)) return false;
+        if (val1[subKey] !== val2[subKey]) return false;
+      }
+    } else if (val1 !== val2) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 export const webrtc_store = defineStore('webrtc_store', () => {
 
     const woc = new webrtc_offer_creator();
@@ -41,7 +75,7 @@ export const webrtc_store = defineStore('webrtc_store', () => {
             // console.log(msg);
 
             if (msg.event == "online_status") {
-                members_online.value = msg.data.active_users;
+                if(!shallowCompareLevel2(members_online.value, msg.data.active_users)) members_online.value = msg.data.active_users;
             }
 
             else if (msg.event == "video_room_event") {

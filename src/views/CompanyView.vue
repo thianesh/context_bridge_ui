@@ -9,6 +9,9 @@ const { session_data, members,
   display_preference, rooms, members_updated, my_company, companies_im_partof, companyId } = storeToRefs(store)
 
   function set_company_and_refresh(company_id){
+    if(companyId.value == company_id) {
+        router.push("home")
+    }
     companyId.value = company_id
   }
 

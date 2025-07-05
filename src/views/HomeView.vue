@@ -8,8 +8,13 @@ import { storeToRefs } from 'pinia'
 const video_preview = ref()
 const preview_visible = ref(true)
 const store = root_store()
-const { session_data, members, 
-  display_preference, rooms, members_updated, companyId, system_input_member_id } = storeToRefs(store)
+const { session_data, members,
+  display_preference, rooms, members_updated, companyId, system_input_member_id, videoRefs, audioRefs,
+  audio_route,
+  video_route,
+  audio_route_rooms,
+  video_route_rooms,
+} = storeToRefs(store)
 
 async function get_members() {
   members.value = await store.get_members()
@@ -17,14 +22,12 @@ async function get_members() {
 import { useToast } from "primevue/usetoast";
 const toast = useToast();
 // Map of user_id -> video/audio DOM refs
-const videoRefs = ref({})
-const audioRefs = ref({})
 
 // webRTC codes
 import { webrtc_store } from '@/stores/webrtc_store';
 import router from '@/router';
 const webrtc_state = webrtc_store()
-const { members_online,audio_room_events,video_room_events,
+const { members_online, audio_room_events, video_room_events,
   media_route_audio, media_route_video, pc_control_list } = storeToRefs(webrtc_state)
 
 const visible = ref(false)
@@ -35,22 +38,22 @@ import { useStorage } from '@vueuse/core';
 
 onMounted(() => {
 
-  })
+})
 
-watch(session_data, (new_session)=> {
-  if(session_data.value?.data?.session) {
+watch(session_data, (new_session) => {
+  if (session_data.value?.data?.session) {
     console.log("CompanyId", companyId.value)
 
-    setTimeout(()=> {
+    setTimeout(() => {
       if (session_data.value?.data?.session) {
-          if(!companyId.value) {
-        console.log("NO company")
-        router.push('/company')
-      }
+        if (!companyId.value) {
+          console.log("NO company")
+          router.push('/company')
+        }
       }
     }, 2000)
 
-    if(!companyId.value) {
+    if (!companyId.value) {
       console.log("NO company")
       router.push('/company')
     }
@@ -65,7 +68,7 @@ watch(session_data, (new_session)=> {
   else router.push('/auth')
 })
 
-function go_to_login(){
+function go_to_login() {
   router.push('/auth')
 }
 
@@ -76,14 +79,14 @@ let timer;
 const secondsRemaining = ref(60)
 
 function startCountdown() {
-          timer = setInterval(() => {
-            if (secondsRemaining.value > 0) {
-              secondsRemaining.value--;
-            } else {
-              clearInterval(timer);
-            }
-          }, 1000);
-  }
+  timer = setInterval(() => {
+    if (secondsRemaining.value > 0) {
+      secondsRemaining.value--;
+    } else {
+      clearInterval(timer);
+    }
+  }, 1000);
+}
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
 const usage_history = useStorage("usage", {
@@ -93,7 +96,7 @@ const usage_history = useStorage("usage", {
 
 async function check_system() {
 
-  if(usage_history.value.cpu > 90) {
+  if (usage_history.value.cpu > 90) {
     await check_system_75()
     return
   }
@@ -112,7 +115,7 @@ async function check_system() {
   console.log(usage)
   usage_history.value = usage
 
-  if(usage.cpu > 90) {
+  if (usage.cpu > 90) {
     store.add_loader_message("We are experiencing high demand. Please try again in few minutes. We will re-chech in 45s")
     await delay(45000)
     store.remove_loader_message("We are experiencing high demand. Please try again in few minutes. We will re-chech in 45s")
@@ -139,7 +142,7 @@ async function check_system_75() {
   console.log(usage)
   usage_history.value = usage
 
-  if(usage.cpu > 75) {
+  if (usage.cpu > 75) {
     store.add_loader_message("We are experiencing high demand. Please try again in few minutes. We will re-chech in 45s")
     await delay(45000)
     store.remove_loader_message("We are experiencing high demand. Please try again in few minutes. We will re-chech in 45s")
@@ -156,14 +159,6 @@ const main_conatainer = ref()
 
 const trackToStreamMap = new Map();
 const streamMap = new Map();
-
-
-// ---------------------------------------- work space ----------------------------------------
-const audio_route = ref({})
-const video_route = ref({})
-
-const audio_route_rooms = ref({})
-const video_route_rooms = ref({})
 
 function toggle_audio_route(id) {
   audio_route.value = {           // ① NEW object reference
@@ -208,12 +203,12 @@ function set_audio_route_rooms(id, state) {
 }
 
 function turn_off_all_media() {
-    [ audio_route.value,
-    video_route.value,
-    audio_route_rooms.value,
-    video_route_rooms.value ].forEach(obj => {
-      Object.keys(obj).forEach(key => obj[key] = false)
-    })
+  [audio_route.value,
+  video_route.value,
+  audio_route_rooms.value,
+  video_route_rooms.value].forEach(obj => {
+    Object.keys(obj).forEach(key => obj[key] = false)
+  })
 }
 
 watch(audio_route, newVal => {
@@ -252,10 +247,10 @@ watch(video_route_rooms, newVal => {
   }))
 })
 
-setInterval(()=>{
+setInterval(() => {
 
-  if(members_online.value.length == 0) return
-  
+  if (members_online.value.length == 0) return
+
   webrtc_state.get_woc()?.get_data_channel()?.send(JSON.stringify({
     Type: "audio_route",
     audio_route: audio_route.value
@@ -276,7 +271,7 @@ setInterval(()=>{
     video_route_room: video_route_rooms.value
   }))
 
-},5000)
+}, 5000)
 
 
 function assing_dom() {
@@ -332,7 +327,7 @@ function assing_dom() {
 
           const audioEl = attachStreamToElement(stream.id, audioRefs.value[member_user_id]);
           // logPlayerVolume(audioEl, 500)
-          monitorAudioLevel(audioEl, { user_id: member_user_id, email: members.value.filter(member => member.user_id == member_user_id)[0]?.users.email} );
+          monitorAudioLevel(audioEl, { user_id: member_user_id, email: members.value.filter(member => member.user_id == member_user_id)[0]?.users.email });
 
           // attachTrack(track, audioRefs.value[member_user_id]);
         }
@@ -365,8 +360,8 @@ function attachStreamToElement(streamId, mediaEl) {
 }
 
 
-function attach_video_to_dialog(member_user_id){
-  setTimeout(()=>{
+function attach_video_to_dialog(member_user_id) {
+  setTimeout(() => {
     system_input_member_id.value = member_user_id
     video_element.value.srcObject = videoRefs.value[member_user_id].srcObject
     console.log("assigning source")
@@ -388,12 +383,12 @@ function attachTrack(track, el) {
 
   // Build a fresh one-track stream – avoids “shared stream” confusion
   const fresh = new MediaStream([track]);
-  el.srcObject  = fresh;
-  el.autoplay   = true;
+  el.srcObject = fresh;
+  el.autoplay = true;
   el.playsInline = true;
 
   // React to remote pause/resume
-  track.onmute  = () => el.classList.add('muted');
+  track.onmute = () => el.classList.add('muted');
   track.onunmute = () => el.classList.remove('muted');
 
   el.play().catch(console.warn);
@@ -489,8 +484,8 @@ function log_tracks() {
 function shuffleArray(array) {
   for (let i = array.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1))
-    // Swap elements
-    ;[array[i], array[j]] = [array[j], array[i]]
+      // Swap elements
+      ;[array[i], array[j]] = [array[j], array[i]]
   }
   return array
 }
@@ -511,7 +506,7 @@ function shuffleArray(array) {
 `
 
 function sortUsers(users) {
-  if(!users) return []
+  if (!users) return []
   return users.sort((a, b) => {
 
     const statusA = a.user_id in members_online.value ? 1 : 100
@@ -520,46 +515,46 @@ function sortUsers(users) {
     if (statusA !== statusB) {
       return statusA - statusB
     }
-    
+
     let a_room_score_video = 0
-    if(a.user_id in video_room_events.value) {
+    if (a.user_id in video_room_events.value) {
       Object.keys(video_room_events.value[a.user_id]).forEach(key => {
-        if(video_room_events.value[a.user_id][key].Video) a_room_score_video++
-      })
-    }
-    
-    let b_room_score_video = 0
-    if(b.user_id in video_room_events.value) {
-      Object.keys(video_room_events.value[b.user_id]).forEach(key => {
-        if(video_room_events.value[b.user_id][key].Video) b_room_score_video++
+        if (video_room_events.value[a.user_id][key].Video) a_room_score_video++
       })
     }
 
-    if(b_room_score_video != a_room_score_video) return b_room_score_video - a_room_score_video
+    let b_room_score_video = 0
+    if (b.user_id in video_room_events.value) {
+      Object.keys(video_room_events.value[b.user_id]).forEach(key => {
+        if (video_room_events.value[b.user_id][key].Video) b_room_score_video++
+      })
+    }
+
+    if (b_room_score_video != a_room_score_video) return b_room_score_video - a_room_score_video
 
     let a_room_score_audio = 0
-    if(a.user_id in audio_room_events.value) {
+    if (a.user_id in audio_room_events.value) {
       Object.keys(audio_room_events.value[a.user_id]).forEach(key => {
-        if(audio_room_events.value[a.user_id][key].Audio) a_room_score_audio++
+        if (audio_room_events.value[a.user_id][key].Audio) a_room_score_audio++
       })
     }
 
     let b_room_score_audio = 0
-    if(b.user_id in audio_room_events.value) {
+    if (b.user_id in audio_room_events.value) {
       Object.keys(audio_room_events.value[b.user_id]).forEach(key => {
-        if(audio_room_events.value[b.user_id][key].Audio) b_room_score_audio++
+        if (audio_room_events.value[b.user_id][key].Audio) b_room_score_audio++
       })
     }
 
-    if(b_room_score_audio != a_room_score_audio) return b_room_score_audio - a_room_score_audio
+    if (b_room_score_audio != a_room_score_audio) return b_room_score_audio - a_room_score_audio
 
     return 0
 
   })
 }
 
-const members_arranged = computed(()=>{
-    return sortUsers(members.value)
+const members_arranged = computed(() => {
+  return sortUsers(members.value)
 })
 
 function logPlayerVolume(audioEl, intervalMs = 500) {
@@ -578,11 +573,11 @@ function monitorAudioLevel(audioEl, meta = {}) {
 
   // 2. Capture the element’s output as a MediaStream
   const stream = audioEl.captureStream();               // avoids createMediaElementSource errors
-  const src    = ctx.createMediaStreamSource(stream);
+  const src = ctx.createMediaStreamSource(stream);
 
   // 3. Wire up an AnalyserNode
-  const analyser    = ctx.createAnalyser();
-  analyser.fftSize  = 256;                              // ~60fps granularity
+  const analyser = ctx.createAnalyser();
+  analyser.fftSize = 256;                              // ~60fps granularity
   src.connect(analyser);
 
   const data = new Uint8Array(analyser.fftSize);
@@ -612,7 +607,9 @@ function monitorAudioLevel(audioEl, meta = {}) {
 
 <template>
   <div>
-    <p severity="secondary" rounded style="margin: auto;" v-if="session_data?.data?.session">Hi {{ session_data?.data?.session?.user.user_metadata.full_name }}! ( {{ session_data?.data?.session?.user.user_metadata.email }} )</p>
+    <p severity="secondary" rounded style="margin: auto;" v-if="session_data?.data?.session">Hi {{
+      session_data?.data?.session?.user.user_metadata.full_name }}! ( {{
+        session_data?.data?.session?.user.user_metadata.email }} )</p>
 
     <div class="card flex flex-wrap gap-2 mb-2 mt-4">
       <!-- <Message size="small" severity="secondary" style="width: max-content;">
@@ -624,81 +621,87 @@ function monitorAudioLevel(audioEl, meta = {}) {
       rooms receiving video: {{ Object.keys(video_route_rooms).length }}  -->
 
       <Chip class="py-0 pl-0 pr-4" style="background-color: transparent;">
-          <span class="bg-primary text-primary-contrast rounded-full w-8 h-8 flex items-center justify-center">
-            {{ Object.keys(audio_route).filter(key => audio_route[key]).length }}
-          </span>
-          <span class="ml-2 font-medium">sending audio</span>
+        <span class="bg-primary text-primary-contrast rounded-full w-8 h-8 flex items-center justify-center">
+          {{Object.keys(audio_route).filter(key => audio_route[key]).length}}
+        </span>
+        <span class="ml-2 font-medium">sending audio</span>
       </Chip>
 
-       <Chip class="py-0 pl-0 pr-4" style="background-color: transparent;">
-          <span class="bg-primary text-primary-contrast rounded-full w-8 h-8 flex items-center justify-center">
-            {{ Object.keys(video_route).filter(key => video_route[key]).length }}
-          </span>
-          <span class="ml-2 font-medium">sending video</span>
+      <Chip class="py-0 pl-0 pr-4" style="background-color: transparent;">
+        <span class="bg-primary text-primary-contrast rounded-full w-8 h-8 flex items-center justify-center">
+          {{Object.keys(video_route).filter(key => video_route[key]).length}}
+        </span>
+        <span class="ml-2 font-medium">sending video</span>
       </Chip>
 
-       <Chip class="py-0 pl-0 pr-4" style="background-color: transparent;">
-          <span class="bg-primary text-primary-contrast rounded-full w-8 h-8 flex items-center justify-center">
-            {{ Object.keys(audio_route_rooms).filter(key => audio_route_rooms[key]).length }}
-          </span>
-          <span class="ml-2 font-medium">sending video</span>
+      <Chip class="py-0 pl-0 pr-4" style="background-color: transparent;">
+        <span class="bg-primary text-primary-contrast rounded-full w-8 h-8 flex items-center justify-center">
+          {{Object.keys(audio_route_rooms).filter(key => audio_route_rooms[key]).length}}
+        </span>
+        <span class="ml-2 font-medium">sending video</span>
       </Chip>
 
-       <Chip class="py-0 pl-0 pr-4" style="background-color: transparent;">
-          <span class="bg-primary text-primary-contrast rounded-full w-8 h-8 flex items-center justify-center">
-            {{ Object.keys(video_route_rooms).filter(key => video_route_rooms[key]).length }}
-          </span>
-          <span class="ml-2 font-medium">sending video</span>
+      <Chip class="py-0 pl-0 pr-4" style="background-color: transparent;">
+        <span class="bg-primary text-primary-contrast rounded-full w-8 h-8 flex items-center justify-center">
+          {{Object.keys(video_route_rooms).filter(key => video_route_rooms[key]).length}}
+        </span>
+        <span class="ml-2 font-medium">sending video</span>
       </Chip>
 
       <Chip class="py-0 pl-0 pr-4" style="background-color: transparent;">
         <Button label="stop all" severity="secondary" @click="turn_off_all_media()" outlined></Button>
       </Chip>
-      
+
     </div>
     <Toast />
-      <Button severity="warn" rounded label="You are not Signed In, click here to sign-in" @click="go_to_login" v-if="!session_data?.data?.session"></Button>
-      <br><br>
+    <Button severity="warn" rounded label="You are not Signed In, click here to sign-in" @click="go_to_login"
+      v-if="!session_data?.data?.session"></Button>
+    <br><br>
 
-      <Message severity="error" v-if="!companyId" @click="router.push('/company')">Please select the space you want to continue with.</Message>
-      <!-- <br><br>
+    <Message severity="error" v-if="!companyId" @click="router.push('/company')">Please select the space you want to
+      continue with.</Message>
+    <!-- <br><br>
       <Button label="create_webrtc" icon="pi pi-video" @click="start_webrtc"></Button>
       <br><br>
       <Button label="log tracks" icon="pi pi-video" @click="log_tracks"></Button>
       <br><br> -->
 
     <div class="card flex justify-center">
-        <Dialog v-model:visible="visible" maximizable modal header="System Access" :style="{ width: '50rem' }" :breakpoints="{ '1199px': '75vw', '575px': '90vw' }">
-          <mouse_events>
-            <video class="system-control" ref="video_element"  autoplay muted playsinline controls style="pointer-events: none;"></video>
-          </mouse_events>
-        </Dialog>
+      <Dialog v-model:visible="visible" maximizable modal header="System Access" :style="{ width: '50rem' }"
+        :breakpoints="{ '1199px': '75vw', '575px': '90vw' }">
+        <mouse_events>
+          <video class="system-control" ref="video_element" autoplay muted playsinline controls
+            style="pointer-events: none;"></video>
+        </mouse_events>
+      </Dialog>
     </div>
 
-    <div class="p-card" style="padding: 1rem;" v-if="! (session_data?.data?.session?.user.id in members_online)">
+    <div class="p-card" style="padding: 1rem;" v-if="!(session_data?.data?.session?.user.id in members_online)">
       <!-- <Message severity="secondary">Connecting to Server... </Message> -->
-       <TimedMessage :messages="[
-  { message: 'Connecting to server...', timeout: 0, severity: 'secondary' },
-  { message: 'Please hold on', timeout: 5, severity: 'secondary' },
-  { message: 'This is taking longer than usual', timeout: 15, severity: 'warn' },
-  { message: 'Please bear with us', timeout: 40, severity: 'error' },
-  { message: 'Something is wrong. Please try again after somtime.', timeout: 40, severity: 'error' },
-]" v-if="session_data?.data?.session" ></TimedMessage>
-        <ProgressBar mode="indeterminate" style="height: 6px"></ProgressBar>
+      <TimedMessage :messages="[
+        { message: 'Connecting to server...', timeout: 0, severity: 'secondary' },
+        { message: 'Please hold on', timeout: 5, severity: 'secondary' },
+        { message: 'This is taking longer than usual', timeout: 15, severity: 'warn' },
+        { message: 'Please bear with us', timeout: 40, severity: 'error' },
+        { message: 'Something is wrong. Please try again after somtime.', timeout: 40, severity: 'error' },
+      ]" v-if="session_data?.data?.session"></TimedMessage>
+      <ProgressBar mode="indeterminate" style="height: 6px"></ProgressBar>
     </div>
 
 
     <div class="video-grid-small" v-else>
-      <div class="webrtc-container"
-        v-for="room in rooms"
-        :key="room.id">
+      <div class="webrtc-container" v-for="room in rooms" :key="room.id">
 
         <Card>
           <template #title>
             <div style="display: flex;width: 100%;text-align: center;">
               <span style="font-size: 1.5rem;margin: auto;">
                 {{ room.name }}
-                <tag severity="info">{{ room.access_list.filter(member_id => member_id in members_online)?.length }} online</tag>
+                <tag severity="info">{{room.access_list.filter(member_id => member_id in members_online)?.length}}
+                  online</tag>
+                  <Button icon="pi pi-arrow-up-right" size="small" style="margin-left: 0.5rem;" 
+                  @click="$router.push({ name: 'conference', params: { room_id: room.id } });"
+                  severity="contrast" outlined rounded></Button>
               </span>
             </div>
           </template>
@@ -710,15 +713,15 @@ function monitorAudioLevel(audioEl, meta = {}) {
                 @pointercancel="set_audio_route_rooms(room.id, false)"
                 @pointerup.prevent="set_audio_route_rooms(room.id, false)" @contextmenu.prevent />
               <Button icon="pi pi-microphone" :severity="audio_route_rooms[room.id] ? 'success' : 'secondary'"
-                :label="audio_route_rooms[room.id] ? 'turn off' : 'turn on'"
-                @click="toggle_audio_route_rooms(room.id)" size="small" />
+                :label="audio_route_rooms[room.id] ? 'turn off' : 'turn on'" @click="toggle_audio_route_rooms(room.id)"
+                size="small" />
 
               <Button icon="pi pi-video" :severity="video_route_rooms[room.id] ? 'success' : 'secondary'"
-                :label="video_route_rooms[room.id] ? 'turn off' : 'turn on'"
-                @click="toggle_video_route_rooms(room.id)" size="small" />
+                :label="video_route_rooms[room.id] ? 'turn off' : 'turn on'" @click="toggle_video_route_rooms(room.id)"
+                size="small" />
 
             </div>
-            
+
             <!-- <Divider /> -->
 
             <div class="card">
@@ -728,12 +731,12 @@ function monitorAudioLevel(audioEl, meta = {}) {
                   <AccordionContent>
                     <div v-for="member_id in room.access_list">
                       <Message severity="secondary">
-                      {{  members_updated.filter(member => member.user_id == member_id)[0]?.email_name }}
+                        {{members_updated.filter(member => member.user_id == member_id)[0]?.email_name}}
 
-                      <Tag severity="success" v-if="member_id in members_online">online</Tag>
-                      <Tag severity="danger" v-else>offline</Tag>
-                      
-                    </Message>
+                        <Tag severity="success" v-if="member_id in members_online">online</Tag>
+                        <Tag severity="danger" v-else>offline</Tag>
+
+                      </Message>
                     </div>
                   </AccordionContent>
                 </AccordionPanel>
@@ -743,7 +746,7 @@ function monitorAudioLevel(audioEl, meta = {}) {
           </template>
         </Card>
 
-        
+
 
       </div>
     </div>
@@ -752,7 +755,7 @@ function monitorAudioLevel(audioEl, meta = {}) {
       <div class="webrtc-container"
         v-for="member in members_arranged.filter(member => session_data?.data?.session?.user.id != member?.user_id)"
         :key="member.user_id">
-        
+
         <Card :class="member.user_id in members_online ? 'online' : 'offline'">
           <template #title v-if="!display_preference.minimal">
             <div style="display: flex;">
@@ -761,12 +764,12 @@ function monitorAudioLevel(audioEl, meta = {}) {
               <Tag severity="success" value="Online" rounded v-if="member.user_id in members_online"></Tag>
               <!-- <Tag severity="warn" value="do not disturb" rounded></Tag> -->
               <Tag severity="danger" value="offline" rounded v-else></Tag>
-              
+
               <span v-if="(member.user_id in audio_room_events)">
                 <span v-for="(status, room_id) in audio_room_events[member.user_id]">
                   <span v-if="rooms.filter(room => room.id == room_id).length">
                     <Message v-if="status.Audio" severity="secondary">Audio
-                      <Tag severity="warn">{{ rooms.filter(room => room.id == room_id)[0]?.name }}</Tag>
+                      <Tag severity="warn">{{rooms.filter(room => room.id == room_id)[0]?.name}}</Tag>
                     </Message>
 
                   </span>
@@ -777,7 +780,7 @@ function monitorAudioLevel(audioEl, meta = {}) {
                 <span v-for="(status, room_id) in video_room_events[member.user_id]">
                   <span v-if="rooms.filter(room => room.id == room_id).length">
                     <Message v-if="status.Video" severity="secondary">Video
-                      <Tag severity="warn">{{ rooms.filter(room => room.id == room_id)[0]?.name }}</Tag>
+                      <Tag severity="warn">{{rooms.filter(room => room.id == room_id)[0]?.name}}</Tag>
                     </Message>
 
                   </span>
@@ -792,8 +795,8 @@ function monitorAudioLevel(audioEl, meta = {}) {
             <Divider />
             <div style="display: flex;">
 
-               <audio controls :ref="el => audioRefs[member.user_id] = el"></audio>
-              
+              <audio controls :ref="el => audioRefs[member.user_id] = el"></audio>
+
               <!-- <audio controls :ref="el => audioRefs[member.user_id] = el" 
                 :style="{ 
                   position: !media_route_audio[member.user_id] ?  'absolute' : 'relative',
@@ -803,10 +806,12 @@ function monitorAudioLevel(audioEl, meta = {}) {
               :style="{
                 position: media_route_audio[member.user_id] ?  'absolute' : 'relative',
           visibility: !media_route_audio[member.user_id] ? 'visible' : 'hidden',}"></audio> -->
-              
+
               <span>
-                <tag icon="pi pi-video" severity="success" style="margin:5px;" v-if="media_route_video[member.user_id]"></tag>
-                <tag severity="success" icon="pi pi-volume-up" style="margin:5px;" v-if="media_route_audio[member.user_id]"></tag>
+                <tag icon="pi pi-video" severity="success" style="margin:5px;" v-if="media_route_video[member.user_id]">
+                </tag>
+                <tag severity="success" icon="pi pi-volume-up" style="margin:5px;"
+                  v-if="media_route_audio[member.user_id]"></tag>
               </span>
             </div>
             <br>
@@ -827,19 +832,20 @@ function monitorAudioLevel(audioEl, meta = {}) {
                 :label="!display_preference.minimal ? (video_route[member.user_id] ? 'turn off' : 'turn on') : ''"
                 @click="toggle_video_route(member.user_id)" :size="display_preference.minimal ? 'small' : 'normal'" />
 
-              <Button :size="display_preference.minimal ? 'small' : 'normal'" 
-              icon="pi pi-desktop" severity="warn" @click="( (visible = true) && attach_video_to_dialog(member.user_id) )" />
+              <Button :size="display_preference.minimal ? 'small' : 'normal'" icon="pi pi-desktop" severity="warn"
+                @click="((visible = true) && attach_video_to_dialog(member.user_id))" />
 
             </div>
             <p style="font-size: 1rem;padding:0px;margin: 0px; margin-top: 2rem;" v-if="display_preference.minimal">{{
-              member.users.full_name }} <tag severity="warn" icon="pi pi-exclamation-triangle" v-if="pc_control_list[member.user_id]">pc_control</tag>
+              member.users.full_name }} <tag severity="warn" icon="pi pi-exclamation-triangle"
+                v-if="pc_control_list[member.user_id]">pc_control</tag>
               <Tag severity="success" value="Online" rounded v-if="member.user_id in members_online"></Tag>
               <Tag severity="danger" value="offline" rounded v-else></Tag>
               <span v-if="(member.user_id in audio_room_events)">
                 <span v-for="(status, room_id) in audio_room_events[member.user_id]">
                   <span v-if="rooms.filter(room => room.id == room_id).length">
                     <Message v-if="status.Audio" severity="secondary">Audio
-                      <Tag severity="warn">{{ rooms.filter(room => room.id == room_id)[0]?.name }}</Tag>
+                      <Tag severity="warn">{{rooms.filter(room => room.id == room_id)[0]?.name}}</Tag>
                     </Message>
 
                   </span>
@@ -850,7 +856,7 @@ function monitorAudioLevel(audioEl, meta = {}) {
                 <span v-for="(status, room_id) in video_room_events[member.user_id]">
                   <span v-if="rooms.filter(room => room.id == room_id).length">
                     <Message v-if="status.Video" severity="secondary">Video
-                      <Tag severity="warn">{{ rooms.filter(room => room.id == room_id)[0]?.name }}</Tag>
+                      <Tag severity="warn">{{rooms.filter(room => room.id == room_id)[0]?.name}}</Tag>
                     </Message>
 
                   </span>
@@ -887,10 +893,13 @@ function monitorAudioLevel(audioEl, meta = {}) {
                   </AccordionContent>
                 </AccordionPanel>
 
-                 <AccordionPanel value="1">
-                  <AccordionHeader>Computer Control <tag severity="warn" icon="pi pi-exclamation-triangle" v-if="pc_control_list[member.user_id]">pc_control</tag> </AccordionHeader>
+                <AccordionPanel value="1">
+                  <AccordionHeader>Computer Control <tag severity="warn" icon="pi pi-exclamation-triangle"
+                      v-if="pc_control_list[member.user_id]">pc_control</tag>
+                  </AccordionHeader>
                   <AccordionContent>
-                      <ToggleButton v-model="pc_control_list[member.user_id]" onLabel="Control ON" offLabel="Control Off" />
+                    <ToggleButton v-model="pc_control_list[member.user_id]" onLabel="Control ON"
+                      offLabel="Control Off" />
                   </AccordionContent>
                 </AccordionPanel>
               </Accordion>
@@ -901,11 +910,13 @@ function monitorAudioLevel(audioEl, meta = {}) {
       </div>
     </div>
 
-    <Dialog :visible="true" header="Video preview" position="bottomleft" :closable="false" class="video-preview" >
-      <video controls ref="video_preview" style="max-width: 25rem;" :style="{height:preview_visible ? '200px' : '0px'}"></video>
-       <template #footer>
-        <Button :label="preview_visible ? 'Hide Preview' : 'Show Preview' " text severity="secondary" @click="preview_visible = !preview_visible" />
-    </template>
+    <Dialog :visible="true" header="Video preview" position="bottomleft" :closable="false" class="video-preview">
+      <video controls ref="video_preview" style="max-width: 25rem;"
+        :style="{ height: preview_visible ? '200px' : '0px' }"></video>
+      <template #footer>
+        <Button :label="preview_visible ? 'Hide Preview' : 'Show Preview'" text severity="secondary"
+          @click="preview_visible = !preview_visible" />
+      </template>
     </Dialog>
   </div>
 
@@ -915,6 +926,7 @@ function monitorAudioLevel(audioEl, meta = {}) {
 .video-preview {
   padding: 0rem;
 }
+
 .system-control {
   width: 100%;
   height: 100%;
