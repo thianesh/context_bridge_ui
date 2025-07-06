@@ -27,7 +27,7 @@ const toast = useToast();
 import { webrtc_store } from '@/stores/webrtc_store';
 import router from '@/router';
 const webrtc_state = webrtc_store()
-const { members_online, audio_room_events, video_room_events,
+const { members_online, audio_room_events, video_room_events, chat_messages,
   media_route_audio, media_route_video, pc_control_list } = storeToRefs(webrtc_state)
 
 const visible = ref(false)
@@ -37,6 +37,26 @@ import mouse_events from '@/components/mouse_events.vue';
 import { useStorage } from '@vueuse/core';
 
 onMounted(() => {
+  // monitoring connections, so we can refresh if something not right.
+  const timerId = setInterval(() => {
+    console.log("monitoring connection...")
+    if (webrtc_state.get_woc()?.ice_gather_time) {
+      if (webrtc_state.get_woc()?.time_of_ice_gather) {
+        // console.log("time of ICE gathering: ", webrtc_state.get_woc()?.time_of_ice_gather - Date.now())
+        if (Date.now() - webrtc_state.get_woc()?.time_of_ice_gather > 15_000) {
+          if (!webrtc_state.get_woc()?.dc_open) {
+            clearInterval(timerId);
+            alert("Server not reachable retrying again.")
+            location.reload();
+          }
+          else {
+            console.log("Datachannel open removing listner")
+            clearInterval(timerId);
+          }
+        }
+      }
+    }
+  }, 1000)
 
 })
 
@@ -603,6 +623,43 @@ function monitorAudioLevel(audioEl, meta = {}) {
     ctx.close();
   };
 }
+
+function go_to_conference(room_id) {
+  router.push('/conference/' + room_id);
+}
+
+const chat_visible = ref(false)
+
+const input_message = ref("")
+const diable_input = ref(false)
+
+function send_message(draft) {
+  diable_input.value = true
+  if (!Object.keys(members_online.value).length) {
+    alert("You are not online yet. Please wait for few seconds.")
+    diable_input.value = false
+    return
+  }
+    
+  Object.keys(members_online.value).forEach(member => {
+      let message = {
+        Type: "route_to",
+        route_to: member,
+        data: JSON.stringify({
+          type: "chat", payload: {
+            name: session_data.value?.data?.session?.user.user_metadata.full_name,
+            message: draft,
+            time: Date.now(),
+            member_id: session_data.value?.data?.session?.user.id
+          },
+        }),
+      }
+      webrtc_state.get_woc().get_data_channel().send(JSON.stringify(message));
+      input_message.value = ""
+      diable_input.value = false
+    })
+}
+
 </script>
 
 <template>
@@ -638,18 +695,23 @@ function monitorAudioLevel(audioEl, meta = {}) {
         <span class="bg-primary text-primary-contrast rounded-full w-8 h-8 flex items-center justify-center">
           {{Object.keys(audio_route_rooms).filter(key => audio_route_rooms[key]).length}}
         </span>
-        <span class="ml-2 font-medium">sending video</span>
+        <span class="ml-2 font-medium">sending video (room)</span>
       </Chip>
 
       <Chip class="py-0 pl-0 pr-4" style="background-color: transparent;">
         <span class="bg-primary text-primary-contrast rounded-full w-8 h-8 flex items-center justify-center">
           {{Object.keys(video_route_rooms).filter(key => video_route_rooms[key]).length}}
         </span>
-        <span class="ml-2 font-medium">sending video</span>
+        <span class="ml-2 font-medium">sending video (room)</span>
       </Chip>
 
       <Chip class="py-0 pl-0 pr-4" style="background-color: transparent;">
         <Button label="stop all" severity="secondary" @click="turn_off_all_media()" outlined></Button>
+      </Chip>
+
+       <Chip class="py-0 pl-0 pr-4" style="background-color: transparent;">
+      <Button rounded size="small" severity="secondary" @click="chat_visible = !chat_visible" label="Chat" icon="pi pi-comments">
+      </Button>
       </Chip>
 
     </div>
@@ -683,7 +745,7 @@ function monitorAudioLevel(audioEl, meta = {}) {
         { message: 'Please hold on', timeout: 5, severity: 'secondary' },
         { message: 'This is taking longer than usual', timeout: 15, severity: 'warn' },
         { message: 'Please bear with us', timeout: 40, severity: 'error' },
-        { message: 'Something is wrong. Please try again after somtime.', timeout: 40, severity: 'error' },
+        { message: 'Something is wrong. Please try again after somtime.', timeout: 60, severity: 'error' },
       ]" v-if="session_data?.data?.session"></TimedMessage>
       <ProgressBar mode="indeterminate" style="height: 6px"></ProgressBar>
     </div>
@@ -699,9 +761,8 @@ function monitorAudioLevel(audioEl, meta = {}) {
                 {{ room.name }}
                 <tag severity="info">{{room.access_list.filter(member_id => member_id in members_online)?.length}}
                   online</tag>
-                  <Button icon="pi pi-arrow-up-right" size="small" style="margin-left: 0.5rem;" 
-                  @click="$router.push({ name: 'conference', params: { room_id: room.id } });"
-                  severity="contrast" outlined rounded></Button>
+                <Button icon="pi pi-arrow-up-right" size="small" style="margin-left: 0.5rem;"
+                  @click="go_to_conference(room.id)" severity="contrast" outlined rounded></Button>
               </span>
             </div>
           </template>
@@ -729,7 +790,7 @@ function monitorAudioLevel(audioEl, meta = {}) {
                 <AccordionPanel value="0">
                   <AccordionHeader>members</AccordionHeader>
                   <AccordionContent>
-                    <div v-for="member_id in room.access_list">
+                    <div v-for="member_id in room.access_list" v-bind:key="member_id">
                       <Message severity="secondary">
                         {{members_updated.filter(member => member.user_id == member_id)[0]?.email_name}}
 
@@ -766,7 +827,7 @@ function monitorAudioLevel(audioEl, meta = {}) {
               <Tag severity="danger" value="offline" rounded v-else></Tag>
 
               <span v-if="(member.user_id in audio_room_events)">
-                <span v-for="(status, room_id) in audio_room_events[member.user_id]">
+                <span v-for="(status, room_id) in audio_room_events[member.user_id]" v-bind:key="room_id">
                   <span v-if="rooms.filter(room => room.id == room_id).length">
                     <Message v-if="status.Audio" severity="secondary">Audio
                       <Tag severity="warn">{{rooms.filter(room => room.id == room_id)[0]?.name}}</Tag>
@@ -777,7 +838,7 @@ function monitorAudioLevel(audioEl, meta = {}) {
               </span>
 
               <span v-if="(member.user_id in video_room_events)">
-                <span v-for="(status, room_id) in video_room_events[member.user_id]">
+                <span v-for="(status, room_id) in video_room_events[member.user_id]" v-bind:key="room_id">
                   <span v-if="rooms.filter(room => room.id == room_id).length">
                     <Message v-if="status.Video" severity="secondary">Video
                       <Tag severity="warn">{{rooms.filter(room => room.id == room_id)[0]?.name}}</Tag>
@@ -842,7 +903,7 @@ function monitorAudioLevel(audioEl, meta = {}) {
               <Tag severity="success" value="Online" rounded v-if="member.user_id in members_online"></Tag>
               <Tag severity="danger" value="offline" rounded v-else></Tag>
               <span v-if="(member.user_id in audio_room_events)">
-                <span v-for="(status, room_id) in audio_room_events[member.user_id]">
+                <span v-for="(status, room_id) in audio_room_events[member.user_id]" v-bind:key="room_id">
                   <span v-if="rooms.filter(room => room.id == room_id).length">
                     <Message v-if="status.Audio" severity="secondary">Audio
                       <Tag severity="warn">{{rooms.filter(room => room.id == room_id)[0]?.name}}</Tag>
@@ -853,7 +914,7 @@ function monitorAudioLevel(audioEl, meta = {}) {
               </span>
 
               <span v-if="(member.user_id in video_room_events)">
-                <span v-for="(status, room_id) in video_room_events[member.user_id]">
+                <span v-for="(status, room_id) in video_room_events[member.user_id]" v-bind:key="room_id">
                   <span v-if="rooms.filter(room => room.id == room_id).length">
                     <Message v-if="status.Video" severity="secondary">Video
                       <Tag severity="warn">{{rooms.filter(room => room.id == room_id)[0]?.name}}</Tag>
@@ -920,6 +981,31 @@ function monitorAudioLevel(audioEl, meta = {}) {
     </Dialog>
   </div>
 
+  <Dialog v-model:visible="chat_visible" header="Edit Profile" :style="{ width: '25rem' }" position="bottomright"
+    :modal="false" :draggable="true">
+    <span class="text-surface-500 dark:text-surface-400 block mb-8">Chat</span>
+    <div style="overflow: auto;max-height: 300px;">
+      <div class="flex items-center gap-4 mb-4" v-for="(message, index) in chat_messages" v-bind:key="index">
+        <tag severity="warn">{{ message.name }}</tag>
+        <Message severity="secondary"> {{ message.message }} <tag severity="info">{{ message.time.toLocaleString({
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        }) }}</tag>
+        </Message>
+      </div>
+    </div>
+    <div class="flex items-center gap-4 mb-8">
+      <label for="email" class="font-semibold w-24">message</label>
+      <InputText id="email" class="flex-auto" v-model="input_message" autocomplete="off" :disabled="diable_input"
+        @keyup.enter="send_message(input_message)" />
+    </div>
+    <div class="flex justify-end gap-2">
+      <Button type="button" label="send" :disabled="diable_input" icon="pi pi-send" severity="secondary"
+        @click="send_message(input_message)"></Button>
+      <Button type="button" label="close" severity="secondary" @click="chat_visible = false"></Button>
+    </div>
+  </Dialog>
 </template>
 
 <style scoped>

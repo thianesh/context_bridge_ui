@@ -24,8 +24,13 @@ export class webrtc_offer_creator {
     this.pc = new RTCPeerConnection(rtcConfig);
     this.dc = this.pc.createDataChannel("data");
     this.video_preview;
+    this.video_preview_two;
+    this.ice_gather_time = 0
+    this.time_of_ice_gather = 0
+    this.dc_open = false
     this.dc.onopen = () => {
       console.log("[DC] open");
+      this.dc_open = true
       setInterval(
         () =>
           this.dc.send(
@@ -111,9 +116,13 @@ export class webrtc_offer_creator {
 
     await this.#createAndSetOffer();
 
+    let start = Date.now()
     console.time("ICE Gathering...");
     await this.#waitForIceComplete();
     console.timeEnd("ICE Gathering...");
+    this.ice_gather_time = Date.now() - start;
+    console.log("connection monitor ", this.ice_gather_time)
+    this.time_of_ice_gather = Date.now()
 
     console.log(`[Offer from browser]: ${this.pc.localDescription.sdp}`);
     const offerB64 = btoa(this.pc.localDescription.sdp);

@@ -47,6 +47,22 @@ export const webrtc_store = defineStore('webrtc_store', () => {
     const media_route_audio = ref({})
     const allow_pc_control = useStorage("allow_pc_control", false)
     const pc_control_list = useStorage('pc_control_list',{})
+    const chat_messages = ref([
+       
+    ])
+
+    const raise_hand = ref([])
+
+    function add_raise_hand(member_id){
+        raise_hand.value.push(member_id)
+        setTimeout(() => {
+            remove_raise_hand(member_id)
+        }, 15000);
+    }
+    
+    function remove_raise_hand(member_id) {
+        raise_hand.value = raise_hand.value.filter(item => item !== member_id);
+    }
 
     async function create_root_offer(){
         const base64Sdp = await woc.makeOfferBase64();
@@ -145,11 +161,34 @@ export const webrtc_store = defineStore('webrtc_store', () => {
             }
             woc.negotiating = false
             }
+            if (msg.Type === "route_to") {
+                    const data = JSON.parse(msg.data)
+                    const payload = data.payload
 
+                    if (data) {
+                        console.log("other events: ",data)
+                        switch (data.type) {
+                        case "raiseHand":
+                            console.log("adding raise hand")
+                            add_raise_hand(payload.member_id)
+                            break
+                        case "raiseHandRemove":
+                            remove_raise_hand(payload.member_id)
+                            break
+                        case "chat":
+                            chat_messages.value.push({
+                                ...payload,
+                                time: new Date(payload.time)
+                            })
+                        default:
+                            break;
+                        }
+                    }
+            }
             if (msg.Type === 'route_to'){
                 
+                
                 if (!allow_pc_control.value) return;
-
                 if(pc_control_list.value[msg.route_from]){
                     `
                     {Type: 'route_to', data: '{"type":"sendMouseInputMove","payload":{"x":683,"y":760}}', 
@@ -170,6 +209,7 @@ export const webrtc_store = defineStore('webrtc_store', () => {
 
                     `
                     const data = JSON.parse(msg.data)
+
                     if (data) {
                         console.log("sending to electron",data)
                         switch (data.type) {
@@ -185,6 +225,7 @@ export const webrtc_store = defineStore('webrtc_store', () => {
                         case "sendMouseRightInputClick":
                             window.electronAPI?.sendMouseInput('right_click','click');
                             break;
+
                         default:
                             break;
                         }
@@ -198,6 +239,9 @@ export const webrtc_store = defineStore('webrtc_store', () => {
 }
 
   return {
+    raise_hand,
+    add_raise_hand,
+    remove_raise_hand,
     get_woc,
     create_root_offer,
     close_root_offer,
@@ -209,8 +253,8 @@ export const webrtc_store = defineStore('webrtc_store', () => {
     media_route_video,
     media_route_audio,
     pc_control_list,
-    allow_pc_control
-
+    allow_pc_control,
+    chat_messages,
   }
 })
 

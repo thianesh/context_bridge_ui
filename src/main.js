@@ -1,6 +1,6 @@
 import './assets/main.css'
 import 'primeicons/primeicons.css'
-
+import 'material-symbols';
 
 
 import { createApp } from 'vue'
