@@ -4,7 +4,9 @@ import AuthView from '@/views/AuthView.vue'
 import RoomsView from '@/views/RoomsView.vue'
 import MembersView from '@/views/MembersView.vue'
 import CompanyView from '@/views/CompanyView.vue'
-import ChatView from '@/views/chatView.vue'
+import Conference from '@/views/Conference.vue'
+import EmptyView from '@/views/EmptyView.vue'
+import ConferenceComponent from '@/components/ConferenceComponent.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -12,7 +14,7 @@ const router = createRouter({
     {
       path: '/',
       name: 'home',
-      // component: RoomsView,
+      component: EmptyView,
     },
     {
       path: '/auth',
@@ -35,9 +37,9 @@ const router = createRouter({
       component: MembersView,
     },
      {
-      path: '/chat',
-      name: 'chat',
-      component: ChatView,
+      path: '/conference/:room_id',
+      name: 'conference',
+      component: ConferenceComponent,
     },
   ],
 })
