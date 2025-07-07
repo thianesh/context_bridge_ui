@@ -2,6 +2,34 @@
  *  + acceptAnswerBase64(b64Answer)             <-- NEW
  */
 
+async function waitForSignalingStable(pc) {
+  if (pc.signalingState === "stable") return;
+
+  return new Promise(resolve => {
+    const checkStable = () => {
+      if (pc.signalingState === "stable") {
+        pc.removeEventListener("signalingstatechange", checkStable);
+        resolve();
+      }
+    };
+    pc.addEventListener("signalingstatechange", checkStable);
+  });
+}
+
+async function waitForDataChannelOpen(dataChannel) {
+  if (dataChannel.readyState === "open") return;
+
+  return new Promise(resolve => {
+    const checkOpen = () => {
+      if (dataChannel.readyState === "open") {
+        dataChannel.removeEventListener("open", checkOpen);
+        resolve();
+      }
+    };
+    dataChannel.addEventListener("open", checkOpen);
+  });
+}
+
 function arrayBufferToObject(ab) {
   const jsonString = new TextDecoder("utf-8").decode(ab); // ↩︎ UTF-8 -> string
   return JSON.parse(jsonString); // ↩︎ string -> object
@@ -32,10 +60,15 @@ export class webrtc_offer_creator {
       console.log("[DC] open");
       this.dc_open = true
       setInterval(
-        () =>
+        () =>{
+          if(this.dc.readyState != "open") {
+            console.log("DC singnal not stable yet. Waiting.")
+            return
+          }
           this.dc.send(
             JSON.stringify({ Type: "data", data: "ping from browser" })
-          ),
+          )
+        },
         3000
       );
     };
@@ -52,7 +85,12 @@ export class webrtc_offer_creator {
 
         if (msg.Type === "offer") {
           this.negotiating = true;
+          if(this.dc.readyState == "open") {
           this.dc.send("Got the offer will be accepted soon!");
+          }
+          else {
+            await waitForDataChannelOpen(this.dc)
+          }
           console.log("Got the offer will be accepted soon!");
 
           const offer = new RTCSessionDescription({
@@ -68,6 +106,17 @@ export class webrtc_offer_creator {
             console.log(
               ">>>>>>>>>>>>>>>>>>>>>>> Sending Answer <<<<<<<<<<<<<<<<<<<<<<<<<<<<"
             );
+            if(this.dc.readyState != "open") {
+              waitForDataChannelOpen(this.dc).then(()=> {
+                this.dc.send(
+                JSON.stringify({
+                  Type: "answer",
+                  SDP: this.pc.localDescription.sdp,
+                })
+            )
+              })
+              return
+            }
             this.dc.send(
               JSON.stringify({
                 Type: "answer",
