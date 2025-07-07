@@ -79,6 +79,7 @@ export const webrtc_store = defineStore('webrtc_store', () => {
     const chat_messages = ref([
        
     ])
+    const  activity_map = ref({})
 
     const raise_hand = ref([])
 
@@ -159,7 +160,7 @@ export const webrtc_store = defineStore('webrtc_store', () => {
             if (msg.Type === 'offer') {
             woc.negotiating = true
             await waitForDataChannelOpen(woc.dc)
-            if(this.dc.readyState == "open") {
+            if(woc.dc.readyState == "open") {
                 woc.dc.send("Got the offer will be accepted soon!");
             }
             console.log("Got the offer will be accepted soon!");
@@ -207,6 +208,7 @@ export const webrtc_store = defineStore('webrtc_store', () => {
                         case "raiseHand":
                             console.log("adding raise hand")
                             add_raise_hand(payload.member_id)
+                            activity_map.value[payload.member_id] = Date.now()
                             break
                         case "raiseHandRemove":
                             remove_raise_hand(payload.member_id)
@@ -275,6 +277,7 @@ export const webrtc_store = defineStore('webrtc_store', () => {
 }
 
   return {
+    activity_map,
     raise_hand,
     add_raise_hand,
     remove_raise_hand,

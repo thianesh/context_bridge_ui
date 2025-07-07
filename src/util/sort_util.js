@@ -1,39 +1,25 @@
 /**
- * Order members by their last-activity time (most-recent first).
+ * Sort an array of member-ID strings by last-activity time.
+ * Most-recently active IDs come first.
  *
- * @param {Array<Object>|Array<string>} members
- *        Either an array of objects that contain a `member_id` field,
- *        or an array of raw member-id strings.
- *
- * @param {Record<string, string|number|Date>} activityById
- *        A lookup table: { [member_id]: ISO string | epoch-ms | Date }
- *
- * @param {boolean} mutate   // default: false – set true to sort in-place
- * @returns {Promise<Array>} A (possibly new) array ordered by recency
+ * @param {string[]} members         // e.g. ['u1', 'u2', 'u3']
+ * @param {Record<string, Date|string|number>} activityById
+ *        // e.g. { u1: '2025-07-05T10:00:00Z', u2: 1720280000000, … }
+ * @param {boolean} mutate=false     // true = sort in-place
+ * @returns {string[]}               // ordered list (original or cloned)
  */
-export async function orderByLastActivity(
-  members,
-  activityById,
-  mutate = false,
-) {
-  // Choose whether to mutate or clone
+export function sortByActivity(members, activityById, mutate = false) {
   const list = mutate ? members : [...members];
 
-  // Helper: normalize any timestamp into epoch-ms; 0 when missing/invalid
-  const toMs = v => {
-    const t = v instanceof Date ? v
+  const ts = v => {
+    // Convert any reasonable format → epoch-ms; NaN → -Infinity
+    const d = v instanceof Date ? v
             : typeof v === 'number' ? new Date(v)
             : typeof v === 'string' ? new Date(v)
             : null;
-    return t?.getTime?.() || 0;
+    return d?.getTime?.() ?? -Infinity;   // unknown → oldest
   };
 
-  // Extract member_id no matter which list shape you gave us
-  const getId = m => (typeof m === 'string' ? m : m.member_id);
-
-  // Stable sort: most-recent first
-  list.sort((m1, m2) => toMs(activityById[getId(m2)]) -
-                        toMs(activityById[getId(m1)]));
-
+  list.sort((a, b) => ts(activityById[b]) - ts(activityById[a]));
   return list;
 }
