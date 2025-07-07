@@ -1,3 +1,31 @@
+async function waitForSignalingStable(pc) {
+  if (pc.signalingState === "stable") return;
+
+  return new Promise(resolve => {
+    const checkStable = () => {
+      if (pc.signalingState === "stable") {
+        pc.removeEventListener("signalingstatechange", checkStable);
+        resolve();
+      }
+    };
+    pc.addEventListener("signalingstatechange", checkStable);
+  });
+}
+
+async function waitForDataChannelOpen(dataChannel) {
+  if (dataChannel.readyState === "open") return;
+
+  return new Promise(resolve => {
+    const checkOpen = () => {
+      if (dataChannel.readyState === "open") {
+        dataChannel.removeEventListener("open", checkOpen);
+        resolve();
+      }
+    };
+    dataChannel.addEventListener("open", checkOpen);
+  });
+}
+
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import {webrtc_offer_creator } from "./offer_creator"
@@ -40,6 +68,7 @@ function shallowCompareLevel2(obj1, obj2) {
 export const webrtc_store = defineStore('webrtc_store', () => {
 
     const woc = new webrtc_offer_creator();
+    const signal_state_stable = ref(false)
     const members_online = ref([])
     const video_room_events = ref({})
     const audio_room_events = ref({})
@@ -71,6 +100,9 @@ export const webrtc_store = defineStore('webrtc_store', () => {
 
     async function accept_answer(sdp) {
         await woc.acceptAnswerBase64(sdp)
+        await waitForSignalingStable(woc.pc)
+        console.log("signal state stable.")
+        signal_state_stable.value = true
     }
     
     async function close_root_offer() {
@@ -126,7 +158,10 @@ export const webrtc_store = defineStore('webrtc_store', () => {
 
             if (msg.Type === 'offer') {
             woc.negotiating = true
-            woc.dc.send("Got the offer will be accepted soon!");
+            await waitForDataChannelOpen(woc.dc)
+            if(this.dc.readyState == "open") {
+                woc.dc.send("Got the offer will be accepted soon!");
+            }
             console.log("Got the offer will be accepted soon!");
 
             const offer = new RTCSessionDescription({
@@ -138,8 +173,9 @@ export const webrtc_store = defineStore('webrtc_store', () => {
             const answer = await woc.pc.createAnswer();
             await woc.pc.setLocalDescription(answer); // set first to trigger ICE gathering
 
-            const sendAnswer = () => {
+            const sendAnswer = async () => {
                 console.log(">>>>>>>>>>>>>>>>>>>>>>> Sending Answer <<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+                await waitForDataChannelOpen(woc.dc)
                 woc.dc.send(
                 JSON.stringify({ Type: 'answer', SDP: woc.pc.localDescription.sdp })
                 );
