@@ -17,13 +17,14 @@ const { session_data, members,
   audio_route_rooms,
   video_route_rooms,
 } = storeToRefs(store)
+import {sortByActivity} from "@/util/sort_util"
 
 import { webrtc_store } from '@/stores/webrtc_store';
 import router from '@/router';
 const webrtc_state = webrtc_store()
 const { members_online, chat_messages, audio_room_events, video_room_events,
   media_route_audio, media_route_video, pc_control_list,
-raise_hand, add_raise_hand
+raise_hand, add_raise_hand, activity_map
 } = storeToRefs(webrtc_state)
 
 const room_id = ref("")
@@ -139,6 +140,13 @@ function send_message(draft) {
   })
 }
 
+const access_list_ordered = computed(()=>{
+  // return rooms.value?.filter(room => room.id == room_id)[0]?.access_list
+  let list_to_ordered = rooms.value?.filter(room => room.id == room_id.value)[0]?.access_list
+  if(!list_to_ordered) list_to_ordered = [];
+  return sortByActivity(list_to_ordered, activity_map.value)
+})
+
 </script>
 
 
@@ -157,7 +165,7 @@ function send_message(draft) {
     <template #content>
       <div class="flex-1 grid grid-cols-2 md:grid-cols-3 gap-4 p-4 overflow-auto">
         <!-- {{ rooms }} - {{ onlineRoomMembers }} -->
-        <div v-for="(member, index) in rooms?.filter(room => room.id == room_id)[0]?.access_list" :key="member"
+        <div v-for="(member) in access_list_ordered" :key="member"
         v-show="onlineRoomMembers.filter(member_id => member == member_id).length > 0">
           <!-- {{ members.filter(member_ => member_.user_id == member)[0] }} -->
           <div class="relative aspect-video bg-black rounded-lg shadow-md">

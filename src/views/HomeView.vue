@@ -28,7 +28,7 @@ import { webrtc_store } from '@/stores/webrtc_store';
 import router from '@/router';
 const webrtc_state = webrtc_store()
 const { members_online, audio_room_events, video_room_events, chat_messages,
-  media_route_audio, media_route_video, pc_control_list } = storeToRefs(webrtc_state)
+  media_route_audio, media_route_video, pc_control_list, activity_map } = storeToRefs(webrtc_state)
 
 const visible = ref(false)
 const video_element = ref()
@@ -611,8 +611,9 @@ function monitorAudioLevel(audioEl, meta = {}) {
       const amp = Math.abs(data[i] - 128);
       if (amp > peak) peak = amp;
     }
-    if (peak > 20) {
+    if (peak > 10) {
       // console.log('🔊 peak amplitude:', peak, meta, audioEl);
+      activity_map.value[meta.user_id] = Date.now()
     }
     rafId = requestAnimationFrame(loop);
   })();
