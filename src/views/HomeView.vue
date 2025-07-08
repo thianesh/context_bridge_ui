@@ -60,7 +60,7 @@ onMounted(() => {
 
 })
 
-watch(session_data, (new_session) => {
+watch(session_data,async (new_session) => {
   if (session_data.value?.data?.session) {
     console.log("CompanyId", companyId.value)
 
@@ -83,6 +83,9 @@ watch(session_data, (new_session) => {
       get_members()
       check_system()
       // start_webrtc()
+      // let SDP = await get_offer()
+      // console.log("Got the offer", SDP)
+      // accept_webrtc_connection(SDP)
     }
   }
   else router.push('/auth')
@@ -447,6 +450,83 @@ async function start_webrtc() {
     console.log(result)
     console.log("accepting offer")
     await webrtc_state.accept_answer(result.SDP)
+  } catch (error) {
+    console.log("error", error);
+    alert("Unable to connect to our Server, Please try again after somtime. If you face the same issue consistently. please mail at thianesh08@gmail.com")
+  }
+
+}
+
+async function get_offer(){
+  console.log(session_data)
+  if (!session_data) {
+    alert("Please login")
+  }
+
+  const myHeaders = new Headers();
+  myHeaders.append("Authorization", `Bearer ${session_data.value.data.session.access_token}`);
+  myHeaders.append("Content-Type", "application/json");
+
+  const raw = JSON.stringify({
+    "SDP": "sdjksdjf"
+  });
+
+  const requestOptions = {
+    method: "POST",
+    headers: myHeaders,
+    body: raw,
+    redirect: "follow"
+  };
+
+  try {
+    let response = await fetch(`http://${window.location.hostname}:8080/start-offer`, requestOptions)
+    let result = await response.json()
+    console.log(result)
+    console.log("getting offer")
+    return result.SDP
+  } catch (error) {
+    console.log("error", error);
+    alert("Unable to connect to our Server, Please try again after somtime. If you face the same issue consistently. please mail at thianesh08@gmail.com")
+  }
+
+}
+
+async function accept_webrtc_connection(sdp) {
+
+  console.log("SDP from server", sdp)
+  console.log(session_data)
+  if (!session_data) {
+    alert("Please login")
+  }
+
+  console.log("Accepting offer and creating answer")
+  let answer_sdp = await webrtc_state.get_woc().acceptOfferAndReturnAnswerBase64(sdp)
+  assing_dom()
+  console.log("Got the answer from client", answer_sdp)
+
+  const myHeaders = new Headers();
+  myHeaders.append("Authorization", `Bearer ${session_data.value.data.session.access_token}`);
+  myHeaders.append("Content-Type", "application/json");
+
+  const raw = JSON.stringify({
+    "SDP": answer_sdp
+  });
+
+  const requestOptions = {
+    method: "POST",
+    headers: myHeaders,
+    body: raw,
+    redirect: "follow"
+  };
+
+  try {
+    let response = await fetch(`http://${window.location.hostname}:8080/set-answer`, requestOptions)
+    console.log(response)
+    let text = await response.text()
+    console.log(text)
+    let result = await response.json()
+    console.log(result)
+    console.log("establishing connection")
   } catch (error) {
     console.log("error", error);
     alert("Unable to connect to our Server, Please try again after somtime. If you face the same issue consistently. please mail at thianesh08@gmail.com")

@@ -41,7 +41,9 @@ export class webrtc_offer_creator {
     rtcConfig = {
       iceServers: [
         {
-          urls: "turn:jo.vldo.in:3478?transport=udp",
+          urls: [
+            "turn:jo.vldo.in:3478?transport=udp",
+          ],
           username: "thianesh",
           credential: "kjroitshhinmaanni",
         },
@@ -167,7 +169,19 @@ export class webrtc_offer_creator {
 
     let start = Date.now()
     console.time("ICE Gathering...");
-    await this.#waitForIceComplete();
+    this.candidate_count = 0
+    // await this.#waitForIceComplete();
+
+    // await this.#waitForAtLeastOneCandidate();
+    await this.#waitForCandidatesForDuration(500);
+    await this.#waitForSDPToContainCandidates();
+    
+    console.log("Total candidates, ", this.candidate_count)
+    if(this.candidate_count < 1) {
+      await this.#waitForUpToTwoCandidates();
+      if(this.candidate_count < 1) await this.#waitForAtLeastOneCandidate();
+    }
+    
     console.timeEnd("ICE Gathering...");
     this.ice_gather_time = Date.now() - start;
     console.log("connection monitor ", this.ice_gather_time)
@@ -191,6 +205,30 @@ export class webrtc_offer_creator {
     console.log("[SIGNAL] remote answer applied");
   }
 
+  async acceptOfferAndReturnAnswerBase64(b64Offer) {
+  const sdp = atob(b64Offer.trim());
+  const offer = new RTCSessionDescription({ type: "offer", sdp });
+
+  // Add tracks like in makeOfferBase64
+  const stream = await this.#getMediaStream();
+  stream.getTracks().forEach((track) => this.pc.addTrack(track, stream));
+
+  // Apply the remote offer
+  await this.pc.setRemoteDescription(offer);
+
+  // Create answer
+  const answer = await this.pc.createAnswer();
+  await this.pc.setLocalDescription(answer);
+
+  // Wait for ICE gathering to complete
+  console.log("waiting for ICE complete...")
+  await this.#waitForAtLeastOneCandidate();
+  await this.#waitForSDPToContainCandidates();
+
+  // Return the answer SDP as base64
+  const answerB64 = btoa(this.pc.localDescription.sdp);
+  return answerB64;
+}
   /* --------------------------- teardown -------------------------------- */
   close() {
     this.dc?.close();
@@ -213,6 +251,96 @@ export class webrtc_offer_creator {
       this.pc.addEventListener("icegatheringstatechange", f);
     });
   }
+
+  async #waitForAtLeastOneCandidate() {
+  return new Promise((resolve) => {
+    const onCandidate = (e) => {
+      if (e.candidate) {
+        this.pc.removeEventListener("icecandidate", onCandidate);
+        resolve(); // 🔥 Got the first candidate, good to go
+      }
+    };
+
+    this.pc.addEventListener("icecandidate", onCandidate);
+
+    // fallback in case no candidates ever come (e.g., host-only network)
+    setTimeout(() => {
+      this.pc.removeEventListener("icecandidate", onCandidate);
+      resolve();
+    }, 1000); // ⏱️ wait max 1s
+  });
+}
+
+async #waitForUpToTwoCandidates() {
+  return new Promise((resolve) => {
+    let count = 0;
+    const onCandidate = (e) => {
+      if (e.candidate) {
+        count++;
+        this.candidate_count = count
+        if (count >= 2) {
+          this.pc.removeEventListener("icecandidate", onCandidate);
+          clearTimeout(timer);
+          resolve(); // ✅ Got 2 candidates
+        }
+      }
+    };
+
+    this.pc.addEventListener("icecandidate", onCandidate);
+
+    // ⏱️ Fallback timeout: if only 1 or 0 candidates come in 1s, return anyway
+    const timer = setTimeout(() => {
+      this.pc.removeEventListener("icecandidate", onCandidate);
+      resolve();
+    }, 5000);
+  });
+}
+
+async #waitForCandidatesForDuration(durationMs = 500) {
+  return new Promise((resolve) => {
+    let count = 0;
+
+    const onCandidate = (e) => {
+      if (e.candidate) {
+        count++;
+        this.candidate_count = count;
+      }
+    };
+
+    this.pc.addEventListener("icecandidate", onCandidate);
+
+    const timer = setTimeout(() => {
+      this.pc.removeEventListener("icecandidate", onCandidate);
+      resolve(); // ✅ Return after 500 ms no matter how many candidates
+    }, durationMs);
+  });
+}
+
+
+async #waitForSDPToContainCandidates() {
+  const hasCandidates = () =>
+    this.pc.localDescription &&
+    /a=candidate:/.test(this.pc.localDescription.sdp);
+
+  if (hasCandidates()) return;
+
+  return new Promise((resolve) => {
+    const check = () => {
+      if (hasCandidates()) {
+        clearInterval(timer);
+        resolve();
+      }
+    };
+    const timer = setInterval(check, 50);
+
+    // safety timeout
+    setTimeout(() => {
+      clearInterval(timer);
+      resolve();
+    }, 2000); // max 2 sec wait
+  });
+}
+
 
   async #getMediaStream() {
     // try {
