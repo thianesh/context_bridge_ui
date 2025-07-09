@@ -179,11 +179,16 @@ function send_message(draft) {
 // }
 
 // setInterval(reorderByActivity, 1000)
+const pinnedMember = ref("")
 
 const access_list_ordered = computed(() => {
   let list_to_ordered = rooms.value?.filter(room => room.id == room_id.value)[0]?.access_list
   if(!list_to_ordered) list_to_ordered = [];
   let sorted = sortByActivity(list_to_ordered, activity_map.value)
+  if(pinnedMember.value){
+    sorted = sorted.filter(id => id != pinnedMember.value)
+    sorted.unshift(pinnedMember.value)
+  }
   return sorted
 })
 
@@ -193,6 +198,15 @@ function is_video(member) {
   }
   return false
 }
+
+function shouldAnimate(updatedAt) {
+  if(updatedAt){
+    const diff = (Date.now() - updatedAt) / 1000; // convert ms to seconds
+    return diff < 2.0;
+  }
+  return false
+}
+
 </script>
 
 
@@ -209,43 +223,77 @@ function is_video(member) {
 
     <!-- Video Grid -->
     <template #content>
-      <div class="flex-1 grid grid-cols-2 md:grid-cols-3 gap-4 p-4 overflow-auto">
-        <!-- {{ rooms }} - {{ onlineRoomMembers }} -->
-        <div v-for="(member) in access_list_ordered" v-bind:key="member" 
-        v-show="onlineRoomMembers.filter(member_id => member == member_id).length > 0">
-          <!-- {{ members.filter(member_ => member_.user_id == member)[0] }} -->
-          <div class="relative aspect-video bg-black rounded-lg shadow-md speaking">
-            <video v-show="is_video(member)"
-            :ref="el => registerVideo(el, member)" autoplay
-              controls
-              playsinline muted class="w-full h-full object-cover rounded-lg"></video>
-            <div v-show="!is_video(member)" class="w-full h-full flex items-center justify-center text-gray-400">
-              <span v-if="member != session_data?.data?.session?.user.id">
-                <span class="w-20 h-20 rounded-full bg-gray-700 text-white font-bold text-lg flex items-center justify-center">
-                  {{members.filter(member_ => member_.user_id == member)[0]?.users?.full_name[0] }}
-                </span>
-              </span>
-              <span v-else>
-               <span class="w-20 h-20 rounded-full bg-gray-700 text-white font-bold text-lg flex items-center justify-center">
-                  You
-                </span>
-              </span>
-              <!-- {{ member }} - {{ raise_hand }} -->
-            </div>
-            <tag class="absolute top-1 left-1 bg-black bg-opacity-50 text-xs px-2 rounded" severity="warn" v-show="check_user_raised_hand(member)">
-              👋🏼 - {{members.filter(member_ => member_.user_id == member)[0]?.users?.full_name}}
-            </tag>
-            <tag class="absolute top-1 left-1 bg-black bg-opacity-50 text-xs px-2 rounded" severity="secondary" v-show="!check_user_raised_hand(member)">
-              {{members.filter(member_ => member_.user_id == member)[0]?.users?.full_name}}
-            </tag>
-          </div>
-        </div>
-      </div>
-    </template>
+  <div 
+     class="flex-1 grid grid-cols-2 md:grid-cols-3 gap-4 p-4 overflow-auto"
+  >
+    <div
+      v-for="(member, index) in access_list_ordered"
+      :key="member"
+      
+     :class="pinnedMember === member ? 'col-span-3 row-span-3' : 'col-span-1'"
+    >
+    <!-- v-show="onlineRoomMembers.includes(member)" -->
+      <div class="relative aspect-video bg-black bg-opacity-75 rounded-lg shadow-md"
+      :class="{
+        speaking: shouldAnimate(activity_map[member])
+      }"
+      >
+        <video
+          v-show="is_video(member)"
+          :ref="el => registerVideo(el, member)"
+          autoplay
+          controls
+          playsinline
+          muted
+          class="w-full h-full object-cover rounded-lg"
+        ></video>
 
-    <!-- Control Bar -->
-    <template #footer>
-        <div style="padding: 0.5rem;margin: auto;width: max-content; padding-left: 1rem;padding-right: 1rem;display: grid;width: max-content;gap: 0.5rem;grid-template-columns: auto auto auto auto auto;background-color: var(--p-form-field-background);border-radius: 30px;">
+        <div v-show="!is_video(member)" class="w-full h-full flex items-center justify-center text-gray-400">
+          <span v-if="member !== session_data?.data?.session?.user.id">
+            <span class="w-20 h-20 rounded-full bg-gray-700 text-white font-bold text-lg flex items-center justify-center">
+              {{ members.find(m => m.user_id === member)?.users?.full_name[0] }}
+            </span>
+          </span>
+          <span v-else>
+            <span class="w-20 h-20 rounded-full bg-gray-700 text-white font-bold text-lg flex items-center justify-center">
+              You
+            </span>
+          </span>
+        </div>
+
+        <tag
+          class="absolute top-1 left-1 bg-black bg-opacity-50 text-xs px-2 rounded"
+          severity="warn"
+          v-show="check_user_raised_hand(member)"
+        >
+          👋🏼 - {{ members.find(m => m.user_id === member)?.users?.full_name }}
+        </tag>
+        <tag
+          class="absolute top-1 left-1 bg-black bg-opacity-50 text-xs px-2 rounded"
+          severity="secondary"
+          v-show="!check_user_raised_hand(member)"
+        >
+          {{ members.find(m => m.user_id === member)?.users?.full_name }}
+        </tag>
+        <tag class="absolute top-1 right-1 bg-black bg-opacity-50 text-xs px-2 rounded cursor-pointer" icon="pi pi-flag" v-if="member != pinnedMember" @click="pinnedMember = member">
+          pin
+        </tag>
+        <tag class="absolute top-1 right-1 bg-black bg-opacity-50 text-xs px-2 rounded cursor-pointer" icon="pi pi-times" v-else @click="pinnedMember = ''">
+          un-pin
+        </tag>
+      </div>
+    </div>
+  </div>
+</template>
+
+
+  
+  </card>
+
+        <div style="position: fixed;bottom:2rem;
+        left:50%; transform: translate(-50%,0%);
+        padding: 0.5rem;margin: auto;width: max-content; padding-left: 1rem;padding-right: 1rem;display: grid;width: max-content;gap: 0.5rem;grid-template-columns: auto auto auto auto auto;background-color: var(--p-form-field-background);border-radius: 30px;"
+        >
         <Button rounded size="small" :severity="audio_route_rooms[room_id] ? 'success' : 'secondary'" @click="toggle_audio_route_rooms(room_id)">
           <span class="material-symbols-outlined" v-if="audio_route_rooms[room_id]">
             mic
@@ -290,8 +338,6 @@ mode_comment
 
       </div>
 
-    </template>
-  </card>
 
   <Dialog v-model:visible="chat_visible" header="Edit Profile" :style="{ width: '25rem' }" position="bottomright" :modal="false" :draggable="true">
     <span class="text-surface-500 dark:text-surface-400 block mb-8">Chat</span>
