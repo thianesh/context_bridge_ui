@@ -69,7 +69,8 @@ export const webrtc_store = defineStore('webrtc_store', () => {
 
     const woc = new webrtc_offer_creator();
     const signal_state_stable = ref(false)
-    const members_online = ref([])
+    const members_online = ref({})
+    const members_online_list = ref([])
     const video_room_events = ref({})
     const audio_room_events = ref({})
     const media_route_video = ref({})
@@ -87,7 +88,7 @@ export const webrtc_store = defineStore('webrtc_store', () => {
         raise_hand.value.push(member_id)
         setTimeout(() => {
             remove_raise_hand(member_id)
-        }, 15000);
+        }, 9000);
     }
     
     function remove_raise_hand(member_id) {
@@ -121,7 +122,7 @@ export const webrtc_store = defineStore('webrtc_store', () => {
 
         if (payload.data instanceof ArrayBuffer) {
             const msg = arrayBufferToObject(payload.data);
-            // console.log(msg);
+            console.log(msg);
 
             if (msg.event == "online_status") {
                 if(!shallowCompareLevel2(members_online.value, msg.data.active_users)) members_online.value = msg.data.active_users;
@@ -132,6 +133,12 @@ export const webrtc_store = defineStore('webrtc_store', () => {
                     ...video_room_events.value,
                     ...msg
                 }
+                members_online_list.value = Object.keys(video_room_events.value).map(key =>  {
+                    return {
+                        ...video_room_events.value[key],
+                        member_id: key,
+                    }
+                })
             }
 
             else if (msg.event == "audio_room_event") {
@@ -294,6 +301,7 @@ export const webrtc_store = defineStore('webrtc_store', () => {
     pc_control_list,
     allow_pc_control,
     chat_messages,
+    members_online_list,
   }
 })
 

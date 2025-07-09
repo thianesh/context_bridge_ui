@@ -1052,13 +1052,15 @@ function send_message(draft) {
       </div>
     </div>
 
-    <Dialog :visible="true" header="Video preview" position="bottomleft" :closable="false" class="video-preview">
+    <Dialog :visible="true" position="bottomleft" :closable="false" class="video-preview" style="padding: 0px;margin: 0px;" :unstyled="true">
+      <div style="position: relative;padding:0.5rem;">
       <video controls ref="video_preview" style="max-width: 25rem;"
-        :style="{ height: preview_visible ? '200px' : '0px' }"></video>
-      <template #footer>
+          :style="{ height: preview_visible ? '200px' : '0px' }">
+        </video>
+        <Tag style="position: absolute;top: 5px;left: 5px;" v-if="preview_visible">Video Preview</Tag>
         <Button :label="preview_visible ? 'Hide Preview' : 'Show Preview'" text severity="secondary"
           @click="preview_visible = !preview_visible" />
-      </template>
+      </div>
     </Dialog>
   </div>
 
@@ -1092,6 +1094,14 @@ function send_message(draft) {
 <style scoped>
 .video-preview {
   padding: 0rem;
+}
+
+.display_none {
+  display: none;
+}
+
+.video-preview .p-dialog .p-dialog-header {
+  display: none;
 }
 
 .system-control {

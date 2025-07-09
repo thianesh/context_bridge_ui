@@ -6,7 +6,7 @@ import MembersView from '@/views/MembersView.vue'
 import CompanyView from '@/views/CompanyView.vue'
 import Conference from '@/views/Conference.vue'
 import EmptyView from '@/views/EmptyView.vue'
-import ConferenceComponent from '@/components/ConferenceComponent.vue'
+import ConferenceComponent from '@/views/Conference.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
