@@ -23,7 +23,7 @@ import { webrtc_store } from '@/stores/webrtc_store';
 import router from '@/router';
 const webrtc_state = webrtc_store()
 const { members_online, chat_messages, audio_room_events, video_room_events,
-  media_route_audio, media_route_video, pc_control_list,
+  media_route_audio, media_route_video, pc_control_list, members_online_list,
 raise_hand, add_raise_hand, activity_map
 } = storeToRefs(webrtc_state)
 
@@ -33,14 +33,22 @@ onMounted(() => {
 });
 
 
-function attachStream(video_element, stream) {
-  try {
-    if(stream) {
-      video_element.srcObject = stream
-    }
-  }
-  catch(e) {
-    console.error("Unable to set the stream.")
+// function attachStream(video_element, stream) {
+//   try {
+//     if(stream) {
+//       video_element.srcObject = stream
+//     }
+//   }
+//   catch(e) {
+//     console.error("Unable to set the stream.")
+//   }
+// }
+
+function registerVideo (el, member) {
+  if (!el) return
+  const streamHolder = videoRefs.value?.[member]
+  if (streamHolder?.srcObject && el.srcObject !== streamHolder.srcObject) {
+    el.srcObject = streamHolder.srcObject
   }
 }
 
@@ -139,14 +147,52 @@ function send_message(draft) {
     }
   })
 }
+// const access_list_ordered = ref([])
 
-const access_list_ordered = computed(()=>{
-  // return rooms.value?.filter(room => room.id == room_id)[0]?.access_list
+// function re_order(){
+//   let list_to_ordered = rooms.value?.filter(room => room.id == room_id.value)[0]?.access_list
+//   if(!list_to_ordered) list_to_ordered = [];
+//   let sorted = sortByActivity(list_to_ordered, activity_map.value)
+//   access_list_ordered.value.splice(0, access_list_ordered.value.length, ...sorted);
+// }
+
+// function reorderByActivity() {
+//   const list_to_order = rooms.value?.find(room => room.id == room_id.value)?.access_list ?? [];
+
+//   // Make sure `access_list_ordered.value` is only set once during setup
+//   if (access_list_ordered.value.length === 0 && list_to_order.length > 0) {
+//     access_list_ordered.value = [...list_to_order]; // initial assignment only
+//   }
+
+//   const ts = v => {
+//     const d = v instanceof Date ? v
+//       : typeof v === 'number' ? new Date(v)
+//       : typeof v === 'string' ? new Date(v)
+//       : null;
+//     return d?.getTime?.() ?? -Infinity;
+//   };
+
+//   // Mutate in-place only
+//   access_list_ordered.value.sort((a, b) => {
+//     return ts(activity_map.value[b]) - ts(activity_map.value[a]);
+//   });
+// }
+
+// setInterval(reorderByActivity, 1000)
+
+const access_list_ordered = computed(() => {
   let list_to_ordered = rooms.value?.filter(room => room.id == room_id.value)[0]?.access_list
   if(!list_to_ordered) list_to_ordered = [];
-  return sortByActivity(list_to_ordered, activity_map.value)
+  let sorted = sortByActivity(list_to_ordered, activity_map.value)
+  return sorted
 })
 
+function is_video(member) {
+  if(member in video_room_events.value) {
+    return video_room_events.value[member][ Object.keys(video_room_events.value[member])[0] ].Video
+  }
+  return false
+}
 </script>
 
 
@@ -165,22 +211,31 @@ const access_list_ordered = computed(()=>{
     <template #content>
       <div class="flex-1 grid grid-cols-2 md:grid-cols-3 gap-4 p-4 overflow-auto">
         <!-- {{ rooms }} - {{ onlineRoomMembers }} -->
-        <div v-for="(member) in access_list_ordered" :key="member"
+        <div v-for="(member) in access_list_ordered" v-bind:key="member" 
         v-show="onlineRoomMembers.filter(member_id => member == member_id).length > 0">
           <!-- {{ members.filter(member_ => member_.user_id == member)[0] }} -->
-          <div class="relative aspect-video bg-black rounded-lg shadow-md">
-            <video v-if="videoRefs[member]" :ref="el => attachStream(el, videoRefs[member].srcObject)" autoplay
+          <div class="relative aspect-video bg-black rounded-lg shadow-md speaking">
+            <video v-show="is_video(member)"
+            :ref="el => registerVideo(el, member)" autoplay
               controls
               playsinline muted class="w-full h-full object-cover rounded-lg"></video>
-            <div v-else class="w-full h-full flex items-center justify-center text-gray-400">
-              <span v-if="member != session_data?.data?.session?.user.id">No Video</span>
-              <span v-else>You</span>
+            <div v-show="!is_video(member)" class="w-full h-full flex items-center justify-center text-gray-400">
+              <span v-if="member != session_data?.data?.session?.user.id">
+                <span class="w-20 h-20 rounded-full bg-gray-700 text-white font-bold text-lg flex items-center justify-center">
+                  {{members.filter(member_ => member_.user_id == member)[0]?.users?.full_name[0] }}
+                </span>
+              </span>
+              <span v-else>
+               <span class="w-20 h-20 rounded-full bg-gray-700 text-white font-bold text-lg flex items-center justify-center">
+                  You
+                </span>
+              </span>
               <!-- {{ member }} - {{ raise_hand }} -->
             </div>
-            <tag class="absolute bottom-1 left-1 bg-black bg-opacity-50 text-xs px-2 rounded" severity="warn" v-if="check_user_raised_hand(member)">
+            <tag class="absolute top-1 left-1 bg-black bg-opacity-50 text-xs px-2 rounded" severity="warn" v-show="check_user_raised_hand(member)">
               👋🏼 - {{members.filter(member_ => member_.user_id == member)[0]?.users?.full_name}}
             </tag>
-            <tag class="absolute bottom-1 left-1 bg-black bg-opacity-50 text-xs px-2 rounded" severity="secondary" v-else>
+            <tag class="absolute top-1 left-1 bg-black bg-opacity-50 text-xs px-2 rounded" severity="secondary" v-show="!check_user_raised_hand(member)">
               {{members.filter(member_ => member_.user_id == member)[0]?.users?.full_name}}
             </tag>
           </div>
@@ -207,14 +262,14 @@ const access_list_ordered = computed(()=>{
             videocam_off
           </span>
         </Button>
-        <Button rounded size="small" severity='success' @click="send_remove_raise_hand(session_data?.data?.session?.user.id)" v-if="check_user_raised_hand(session_data?.data?.session?.user.id)">
+        <Button rounded size="small" severity='success' @click="send_remove_raise_hand(session_data?.data?.session?.user.id)" v-show="check_user_raised_hand(session_data?.data?.session?.user.id)">
           <span class="material-symbols-rounded">
             <!-- do_not_touch -->
             back_hand
           </span>
         </Button>
         
-        <Button rounded size="small" severity='secondary' @click="send_raise_hand(session_data?.data?.session?.user.id)" v-else>
+        <Button rounded size="small" severity='secondary' @click="send_raise_hand(session_data?.data?.session?.user.id)" v-show="!check_user_raised_hand(session_data?.data?.session?.user.id)">
           <span class="material-symbols-rounded">
             <!-- do_not_touch -->
             back_hand
@@ -263,27 +318,28 @@ mode_comment
 </template>
 
 <style scoped>
-/* Optional styling enhancements */
-@keyframes gradient-border-glow {
+@keyframes fade_audio {
   0% {
-    box-shadow: 0 0 10px rgba(255, 255, 255, 0.3), 0 0 18px rgba(0, 255, 0, 0.7);
-    border-color: hsl(120, 100%, 60%);
+    border-color: transparent;
+    box-shadow: 0 0 0px hsla(146, 100%, 47%, 0);
   }
-
-  50% {
-    box-shadow: 0 0 6px rgba(255, 255, 255, 0.2), 0 0 12px rgba(255, 165, 0, 0.6);
-    border-color: hsl(30, 100%, 60%);
+  30% {
+    border-color: hsl(146 100% 47%);
+    box-shadow: 0 0 12px 2px hsla(146, 100%, 47%, 0.35);
   }
-
+  60% {
+    border-color: hsl(146 100% 47%);
+    box-shadow: 0 0 12px 2px hsla(146, 100%, 47%, 0.45);
+  }
   100% {
-    box-shadow: 0 0 10px rgba(255, 255, 255, 0.3), 0 0 18px rgba(0, 255, 0, 0.7);
-    border-color: hsl(120, 100%, 60%);
+    border-color: transparent;
+    box-shadow: 0 0 0px hsla(146, 100%, 47%, 0);
   }
 }
 
-.gradient-speaking-shadow {
-  animation: gradient-border-glow 5s ease;
-  border-width: 1px;
-  border-style: solid;
+.speaking {
+  border: 2px solid transparent; /* Keeps layout stable */
+  animation: fade_audio 2s ease-in-out 0s 1 forwards;
+  will-change: border-color, box-shadow;
 }
 </style>

@@ -5,6 +5,7 @@ import 'material-symbols';
 
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
+import { autoAnimatePlugin } from '@formkit/auto-animate/vue'
 
 import PrimeVue from 'primevue/config';
 import { definePreset } from '@primeuix/themes';
@@ -127,4 +128,5 @@ app.use(PrimeVue, {
     }
 });
 app.use(ToastService);
+app.use(autoAnimatePlugin)
 app.mount('#app')
