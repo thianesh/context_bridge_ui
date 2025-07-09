@@ -229,10 +229,10 @@ function shouldAnimate(updatedAt) {
     <div
       v-for="(member, index) in access_list_ordered"
       :key="member"
-      
+      v-show="onlineRoomMembers.includes(member)"
      :class="pinnedMember === member ? 'col-span-3 row-span-3' : 'col-span-1'"
     >
-    <!-- v-show="onlineRoomMembers.includes(member)" -->
+    <!--  -->
       <div class="relative aspect-video bg-black bg-opacity-75 rounded-lg shadow-md"
       :class="{
         speaking: shouldAnimate(activity_map[member])
