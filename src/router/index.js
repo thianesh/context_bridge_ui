@@ -7,6 +7,8 @@ import CompanyView from '@/views/CompanyView.vue'
 import Conference from '@/views/Conference.vue'
 import EmptyView from '@/views/EmptyView.vue'
 import ConferenceComponent from '@/views/Conference.vue'
+import FeedBackView from '@/views/FeedBackView.vue'
+import TimeLineView from '@/views/TimeLineView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -36,10 +38,20 @@ const router = createRouter({
       name: 'members',
       component: MembersView,
     },
+    {
+      path: '/feedback',
+      name: 'feedback',
+      component: FeedBackView,
+    },
      {
       path: '/conference/:room_id',
       name: 'conference',
       component: ConferenceComponent,
+    },
+    {
+      path: '/timeline',
+      name: 'timeline',
+      component: TimeLineView,
     },
   ],
 })

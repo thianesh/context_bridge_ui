@@ -49,27 +49,40 @@ onMounted(()=> {
 
     <!-- <Button @click="store.get_companies" label="load comapanies"></Button> -->
 
-   <div class="flex flex-col border border-surface shadow-lg justify-center items-center max-w-80 rounded-2xl p-8 gap-4" 
-   v-if="my_company?.id"
-   @click="set_company_and_refresh(my_company.id)">
+   <div class="relative flex flex-col border border-surface shadow-lg justify-center items-center max-w-80 rounded-2xl p-8 gap-4 cursor-pointer" 
+   v-if="my_company?.id">
+   <tag class="absolute top-5 right-5 text-xs px-2 rounded bg-orange-500"
+          severity="success" v-if="companyId == my_company.id"
+        >
+         Active
+        </tag>
         <div class="rounded-full bg-primary text-primary-contrast w-12 h-12 flex items-center justify-center">
             <i class="pi pi-building !text-2xl"></i>
         </div>
         <span class="text-2xl font-bold">Personal</span>
         <span class="text-muted-color text-center">Owned by you: {{ session_data?.data?.session?.user.user_metadata.email }}</span>
+        <Button label="Use this space" size="small" severity="info" outlined @click="set_company_and_refresh(my_company.id)"
+        :disabled="companyId == my_company?.id"></Button>
     </div>
 
     <Divider></Divider>
 
  <h3 class="text-xl font-medium">Other spaces you are member of</h3>
 
- <div v-for="company in companies_im_partof">
-     <div class="flex flex-col border border-surface shadow-lg justify-center items-center max-w-80 rounded-2xl p-8 gap-4" @click="set_company_and_refresh(company.company_id)">
+ <div v-for="company in companies_im_partof" v-bind:key="company.company_id">
+     <div class="relative flex flex-col border border-surface shadow-lg justify-center items-center max-w-80 rounded-2xl p-8 gap-4 cursor-pointer" >
+         <tag class="absolute top-5 right-5 text-xs px-2 rounded bg-orange-500"
+          severity="success" v-if="companyId == company.company_id"
+        >
+         Active
+        </tag>
       <div class="rounded-full bg-primary text-primary-contrast w-12 h-12 flex items-center justify-center">
           <i class="pi pi-users !text-2xl"></i>
       </div>
       <span class="text-2xl font-bold">{{company.company_name}}</span>
       <span class="text-muted-color text-center">{{ company.companyData.total_members }} members | owned by {{ company.companyData.owner_email }}</span>
+       <Button label="Use this space" size="small" severity="info" outlined @click="set_company_and_refresh(company.company_id)"
+       :disabled="companyId == company.company_id"></Button>
   </div>
  </div>
     

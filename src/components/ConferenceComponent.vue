@@ -16,6 +16,7 @@ const { session_data, members,
   video_route,
   audio_route_rooms,
   video_route_rooms,
+  isDark,
 } = storeToRefs(store)
 import {sortByActivity} from "@/util/sort_util"
 
@@ -23,8 +24,9 @@ import { webrtc_store } from '@/stores/webrtc_store';
 import router from '@/router';
 const webrtc_state = webrtc_store()
 const { members_online, chat_messages, audio_room_events, video_room_events,
-  media_route_audio, media_route_video, pc_control_list, members_online_list,
-raise_hand, add_raise_hand, activity_map
+media_route_audio, media_route_video, pc_control_list, members_online_list,
+raise_hand, add_raise_hand, activity_map, thumbs_up, add_thumbs_up,
+remove_thumbs_up,
 } = storeToRefs(webrtc_state)
 
 const room_id = ref("")
@@ -78,6 +80,11 @@ function check_user_raised_hand(member_id) {
   return raise_hand.value.includes(member_id)
 }
 
+function check_user_thumbs_up(member_id) {
+  return thumbs_up.value.includes(member_id)
+}
+
+
 // const video_preview = ref()
 
 // function set_preview() {
@@ -87,7 +94,6 @@ function check_user_raised_hand(member_id) {
 // }
 
 function send_raise_hand(member_id) {
-  console.log("sending raise hand")
   webrtc_state.add_raise_hand(member_id)
 
   rooms.value?.filter(room => room.id == room_id.value)[0]?.access_list.forEach(member => {
@@ -119,6 +125,37 @@ function send_remove_raise_hand(member_id) {
 
 }
 
+function send_thumbs_up(member_id) {
+  webrtc_state.add_thumbs_up(member_id)
+
+  rooms.value?.filter(room => room.id == room_id.value)[0]?.access_list.forEach(member => {
+    if(member in members_online.value){
+      let message = {
+        Type: "route_to",
+        route_to: member,
+        data: JSON.stringify({ type: "thumbsUp",payload: { member_id } }),
+      }
+      webrtc_state.get_woc().get_data_channel().send(JSON.stringify(message));
+    }
+  })
+
+}
+
+function send_remove_thumbs_up(member_id) {
+  webrtc_state.remove_thumbs_up(member_id)
+  
+   rooms.value?.filter(room => room.id == room_id.value)[0]?.access_list.forEach(member => {
+    if(member in members_online.value){
+      let message = {
+        Type: "route_to",
+        route_to: member,
+        data: JSON.stringify({ type: "thumbsUpRemove",payload: { member_id } }),
+      }
+      webrtc_state.get_woc().get_data_channel().send(JSON.stringify(message));
+    }
+  })
+
+}
 const input_message = ref("")
 const diable_input = ref(false)
 
@@ -233,9 +270,12 @@ function shouldAnimate(updatedAt) {
      :class="pinnedMember === member ? 'col-span-3 row-span-3' : 'col-span-1'"
     >
     <!--  -->
-      <div class="relative aspect-video bg-black bg-opacity-75 rounded-lg shadow-md"
+      <div class="relative aspect-video rounded-lg shadow-md not-speaking"
+      
       :class="{
-        speaking: shouldAnimate(activity_map[member])
+        speaking: shouldAnimate(activity_map[member]),
+        'bg-black': isDark,
+        'p-message-secondary': !isDark
       }"
       >
         <video
@@ -262,14 +302,14 @@ function shouldAnimate(updatedAt) {
         </div>
 
         <tag
-          class="absolute top-1 left-1 bg-black bg-opacity-50 text-xs px-2 rounded"
-          severity="warn"
+          class="absolute top-1 left-1 text-xs px-2 rounded bg-orange-500"
+          severity="secondary"
           v-show="check_user_raised_hand(member)"
         >
           👋🏼 - {{ members.find(m => m.user_id === member)?.users?.full_name }}
         </tag>
         <tag
-          class="absolute top-1 left-1 bg-black bg-opacity-50 text-xs px-2 rounded"
+          class="absolute top-1 left-1 bg-black text-xs px-2 rounded"
           severity="secondary"
           v-show="!check_user_raised_hand(member)"
         >
@@ -281,6 +321,8 @@ function shouldAnimate(updatedAt) {
         <tag class="absolute top-1 right-1 bg-black bg-opacity-50 text-xs px-2 rounded cursor-pointer" icon="pi pi-times" v-else @click="pinnedMember = ''">
           un-pin
         </tag>
+        <Message class="absolute top-10 right-1 bg-black bg-opacity-50 text-xs px-2 rounded cursor-pointer" icon="pi pi-thumbs-up-fill" severity="success" v-show="check_user_thumbs_up(member)">
+        </Message>
       </div>
     </div>
   </div>
@@ -323,7 +365,13 @@ function shouldAnimate(updatedAt) {
             back_hand
           </span>
         </Button>
-        <Button rounded size="small" severity="secondary">
+        <Button rounded size="small" severity="success" @click="send_remove_thumbs_up((session_data?.data?.session?.user.id))" v-show="check_user_thumbs_up(session_data?.data?.session?.user.id)">
+          <span class="material-symbols-outlined">
+          thumb_up
+          </span>
+          <!-- back_hand -->
+        </Button>
+        <Button rounded size="small" severity="secondary" @click="send_thumbs_up((session_data?.data?.session?.user.id))" v-show="!check_user_thumbs_up(session_data?.data?.session?.user.id)">
           <span class="material-symbols-outlined">
           thumb_up
           </span>
@@ -387,5 +435,8 @@ mode_comment
   border: 2px solid transparent; /* Keeps layout stable */
   animation: fade_audio 2s ease-in-out 0s 1 forwards;
   will-change: border-color, box-shadow;
+}
+.not-speaking {
+  border: 2px solid transparent;
 }
 </style>

@@ -239,6 +239,10 @@ export const root_store = defineStore("root", () => {
         message: "Successfully Updated room | " + room_name,
       };
     }
+    return {
+        success: false,
+        message: "Please ensure you have proper access",
+      };
   }
 
   const loader_object = ref([]);
@@ -379,6 +383,33 @@ export const root_store = defineStore("root", () => {
     }
   });
 
+   async function add_feedback(message) {
+    const { error: insertError } = await supabase.from("feedback").insert({
+      message
+    });
+
+    if (insertError) {
+      console.error("Insert failed:", insertError.message);
+      return { message: insertError.message, status: false };
+    }
+
+    return { status: true, message: "Feedback Submitted." };
+  }
+
+  const all_feedback = ref([])
+
+  async function get_all_feedback(){
+    const { data: feedback, error: error } = await supabase
+      .from("feedback")
+      .select("*")
+      .order('created_at', {ascending: false})
+    if(!error) {
+      all_feedback.value = feedback
+      return true
+    }
+    return false
+  }
+
   // global refs
   const videoRefs = ref({});
   const audioRefs = ref({});
@@ -388,8 +419,13 @@ export const root_store = defineStore("root", () => {
 
   const audio_route_rooms = ref({});
   const video_route_rooms = ref({});
+  const isDark = useStorage('theme', false)
 
   return {
+    all_feedback,
+    get_all_feedback,
+    add_feedback,
+    isDark,
     audio_route,
     video_route,
     audio_route_rooms,

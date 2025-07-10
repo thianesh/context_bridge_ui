@@ -9,8 +9,6 @@ import { useStorage } from '@vueuse/core'
 import loader from './components/loader.vue';
 import router from '@/router';
 
-const isDark = useStorage('theme', false)
-
 const route = useRoute()
 const isHomeRoute = computed(() => route.path === '/')
 
@@ -18,7 +16,7 @@ const isHomeRoute = computed(() => route.path === '/')
 import { root_store } from '@/stores/root_store'
 import { storeToRefs } from 'pinia'
 const store = root_store()
-const { rooms, members, loader_object, companyId } = storeToRefs(store)
+const { rooms, members, loader_object, companyId, isDark } = storeToRefs(store)
 
 async function get_members() {
   members.value = await store.get_members()

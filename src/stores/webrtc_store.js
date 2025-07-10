@@ -83,6 +83,7 @@ export const webrtc_store = defineStore('webrtc_store', () => {
     const  activity_map = ref({})
 
     const raise_hand = ref([])
+    const thumbs_up = ref([])
 
     function add_raise_hand(member_id){
         raise_hand.value.push(member_id)
@@ -93,6 +94,17 @@ export const webrtc_store = defineStore('webrtc_store', () => {
     
     function remove_raise_hand(member_id) {
         raise_hand.value = raise_hand.value.filter(item => item !== member_id);
+    }
+
+    function add_thumbs_up(member_id){
+        thumbs_up.value.push(member_id)
+        setTimeout(() => {
+            remove_thumbs_up(member_id)
+        }, 9000);
+    }
+    
+    function remove_thumbs_up(member_id) {
+        thumbs_up.value = thumbs_up.value.filter(item => item !== member_id);
     }
 
     async function create_root_offer(){
@@ -122,7 +134,7 @@ export const webrtc_store = defineStore('webrtc_store', () => {
 
         if (payload.data instanceof ArrayBuffer) {
             const msg = arrayBufferToObject(payload.data);
-            console.log(msg);
+            // console.log(msg);
 
             if (msg.event == "online_status") {
                 if(!shallowCompareLevel2(members_online.value, msg.data.active_users)) members_online.value = msg.data.active_users;
@@ -213,12 +225,18 @@ export const webrtc_store = defineStore('webrtc_store', () => {
                         console.log("other events: ",data)
                         switch (data.type) {
                         case "raiseHand":
-                            console.log("adding raise hand")
                             add_raise_hand(payload.member_id)
                             activity_map.value[payload.member_id] = Date.now()
                             break
                         case "raiseHandRemove":
                             remove_raise_hand(payload.member_id)
+                            break
+                        case "thumbsUp":
+                            add_thumbs_up(payload.member_id)
+                            activity_map.value[payload.member_id] = Date.now()
+                            break
+                        case "thumbsUpRemove":
+                            remove_thumbs_up(payload.member_id)
                             break
                         case "chat":
                             chat_messages.value.push({
@@ -286,8 +304,11 @@ export const webrtc_store = defineStore('webrtc_store', () => {
   return {
     activity_map,
     raise_hand,
+    thumbs_up,
     add_raise_hand,
     remove_raise_hand,
+    add_thumbs_up,
+    remove_thumbs_up,
     get_woc,
     create_root_offer,
     close_root_offer,
