@@ -280,7 +280,7 @@ async function update_room() {
     room_editor.value = false
     const result = await store.update_room(update_room_id.value, update_room_name.value, update_members_selected.value)
     toast.add({
-        severity: result.success ? 'success' : 'error',
+        severity: result?.success ? 'success' : 'error',
         summary: 'Info',
         detail: result.message,
         life: 3000 })

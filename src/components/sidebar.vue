@@ -38,6 +38,20 @@ const items = ref([
             router.push('/company');
         }
     },
+    {
+        label: 'feedback',
+        icon: 'pi pi-verified',
+        command: () => {
+            router.push('/feedback');
+        }
+    },
+     {
+        label: 'timeline',
+        icon: 'pi pi-trophy',
+        command: () => {
+            router.push('/timeline');
+        }
+    },
     // {
     //     label: 'rooms-access',
     //     icon: 'pi pi-lock',
