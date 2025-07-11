@@ -1,6 +1,6 @@
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute } from 'vue-router';
 const route = useRoute();
 
@@ -244,6 +244,36 @@ function shouldAnimate(updatedAt) {
   return false
 }
 
+const chat_box = ref()
+
+function scroll_bottom_chat(){
+  chat_box.value.parentElement.scrollTo({
+  top: chat_box.value.parentElement.scrollHeight,
+  behavior: 'smooth'
+});
+}
+
+
+function isUserNearBottom(container, threshold = 700) {
+  return container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
+}
+
+function maybeScrollToBottom() {
+  let container = chat_box.value.parentElement
+  // console.log("scrolling bottom")
+  // console.log(container.scrollHeight, container.scrollTop, container.clientHeight, container.scrollHeight - container.scrollTop - container.clientHeight)
+  if (isUserNearBottom(container)) {
+    container.scrollTo({
+      top: container.scrollHeight,
+      behavior: 'smooth'
+    });
+  }
+}
+
+watch(chat_messages, ()=> {
+  setTimeout(maybeScrollToBottom, 1000)
+}, {deep:true})
+
 </script>
 
 
@@ -387,26 +417,42 @@ mode_comment
       </div>
 
 
-  <Dialog v-model:visible="chat_visible" header="Edit Profile" :style="{ width: '25rem' }" position="bottomright" :modal="false" :draggable="true">
-    <span class="text-surface-500 dark:text-surface-400 block mb-8">Chat</span>
-    <div style="overflow: auto;max-height: 300px;">
-    <div class="flex items-center gap-4 mb-4" v-for="(message, index) in chat_messages" v-bind:key="index">
-      <tag severity="warn">{{ message.name }}</tag> 
-          <Message severity="secondary"> {{ message.message }} <tag severity="info">{{ message.time.toLocaleString({
-            hour: 'numeric',
-            minute: '2-digit',
-            hour12: true
-          }) }}</tag></Message>
+  <Dialog v-model:visible="chat_visible" header="Chat" style="width: 25rem;" position="bottomright"
+    :modal="false" :draggable="true" class="flex">
+    
+    <template #default>
+    <div style="overflow: auto;" ref="chat_box" >  
+      <div class="" v-for="(message, index) in chat_messages" v-bind:key="index">
+
+         <ChatMessage
+          :username="message.name"
+          :message="message.message"
+          :time="message.time.toLocaleString({
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        })"
+          :isYou="message.member_id == session_data?.data?.session?.user.id"
+        />
       </div>
     </div>
-       <div class="flex items-center gap-4 mb-8">
-            <label for="email" class="font-semibold w-24">message</label>
-            <InputText id="email" class="flex-auto" v-model="input_message" autocomplete="off" :disabled="diable_input" @keyup.enter="send_message(input_message)" />
-        </div>
-        <div class="flex justify-end gap-2">
-            <Button type="button" label="send" :disabled="diable_input" icon="pi pi-send" severity="secondary" @click="send_message(input_message)"></Button>
-            <Button type="button" label="close" severity="secondary" @click="chat_visible = false"></Button>
-        </div>
+    </template>
+    <template #footer>
+      <div class="grid" style="width: 100%;">
+      <div class="flex items-center gap-4 mb-8">
+        <!-- <label for="email" class="font-semibold w-24">message</label> -->
+        <Textarea id="email" class="flex-auto" v-model="input_message" autocomplete="off" :disabled="diable_input"
+        @keyup.enter="send_message(input_message)" />
+      </div>
+      
+      <div class="flex justify-end gap-2">
+        <Button label="scroll to bottom" severity="secondary" @click="scroll_bottom_chat()"></Button>
+        <Button type="button" label="send" :disabled="diable_input" icon="pi pi-send" severity="secondary"
+        @click="send_message(input_message)"></Button>
+        <Button type="button" label="close" severity="secondary" @click="chat_visible = false"></Button>
+      </div>
+      </div>
+    </template>
   </Dialog>
 
 </template>
