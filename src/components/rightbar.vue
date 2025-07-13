@@ -54,7 +54,7 @@ watch(selected_camera, (new_val) => {
     console.log("User changed camera source:", new_val)
     const woc = webrtc_state?.get_woc()
     if(woc) {
-        replaceVideoTrackByDeviceId(woc.pc, new_val.deviceId)
+        replaceVideoTrackByDeviceId(woc.pc, new_val.deviceId, woc)
     }
 })
 
@@ -62,7 +62,7 @@ watch(selected_mic, (new_val) => {
     console.log("User changed microphone source:", new_val)
     const woc = webrtc_state?.get_woc()
     if(woc) {
-        replaceAudioTrackByDeviceId(woc.pc, new_val.deviceId)
+        replaceAudioTrackByDeviceId(woc.pc, new_val.deviceId, woc)
     }
 })
 
