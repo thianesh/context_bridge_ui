@@ -2,3 +2,5 @@ node_modules/
 dist/
 electron/node_modules/
 electron/build
+dist/*.exe
+public/*.exe
