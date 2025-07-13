@@ -3,7 +3,7 @@
         <Button label="Download for windows x64" icon="pi pi-microsoft"></Button>
     </a>
     <span style="margin: 0.5rem"></span>
-    <a href="/Jo Meet Setup 1.0.0.exe" download>
+    <a href="/jomeet_1.0.0_amd64.deb" download>
         <Button label="Download for Linux x64" icon="pi pi-code"></Button>
     </a>
     <Divider>

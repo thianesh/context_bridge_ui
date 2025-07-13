@@ -1,4 +1,4 @@
-export async function replaceVideoTrackByDeviceId(pc, deviceId) {
+export async function replaceVideoTrackByDeviceId(pc, deviceId, woc) {
   try {
     const constraints = {
       video: {
@@ -13,6 +13,8 @@ export async function replaceVideoTrackByDeviceId(pc, deviceId) {
     if (sender && newTrack) {
       await sender.replaceTrack(newTrack);
       console.log("📷 Video track replaced with device:", deviceId);
+      woc?.video_preview?.srcObject = stream
+      woc?.video_preview?.play()
     } else {
       console.warn("No video sender found or new track missing");
     }
