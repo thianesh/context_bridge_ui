@@ -222,7 +222,7 @@ export const webrtc_store = defineStore('webrtc_store', () => {
                     const payload = data.payload
 
                     if (data) {
-                        console.log("other events: ",data)
+                        // console.log("other events: ",data)
                         switch (data.type) {
                         case "raiseHand":
                             add_raise_hand(payload.member_id)

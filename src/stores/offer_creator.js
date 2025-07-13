@@ -189,9 +189,9 @@ export class webrtc_offer_creator {
 
     console.log(`[Offer from browser]: ${this.pc.localDescription.sdp}`);
     const offerB64 = btoa(this.pc.localDescription.sdp);
-    console.log(
-      "\n=== BASE-64 SDP OFFER ===\n" + offerB64 + "\n=== /BASE-64 ===\n"
-    );
+    // console.log(
+    //   "\n=== BASE-64 SDP OFFER ===\n" + offerB64 + "\n=== /BASE-64 ===\n"
+    // );
     return offerB64;
   }
 

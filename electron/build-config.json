@@ -6,8 +6,9 @@
     "buildResources": "build"
   },
   "files": [
-    "build/dist/**/*",
-    "main.cjs"
+    "main.cjs",
+    "preload.cjs",
+    "build/dist/**/*"
   ],
   "win": {
     "target": "nsis",

@@ -40,12 +40,12 @@ onMounted(() => {
   if (window.electronAPI) {
     // Listen for heartbeat from backend
     window.electronAPI.onBackendHeartbeat((msg) => {
-      console.log("💓 Message:", msg);
+      // console.log("💓 Message:", msg);
     });
 
     // Send heartbeat to backend every 5s
     setInterval(() => {
-      console.log("💓 Sending heartbeat to backend...");
+      // console.log("💓 Sending heartbeat to backend...");
       window.electronAPI.sendHeartbeat();
     }, 5000);
   }
