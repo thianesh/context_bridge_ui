@@ -85,7 +85,7 @@ watch(selected_mic, (new_val) => {
         <Button label="Stop Screen Share" @click="stop_share" icon="pi pi-times"></Button>
 
         <br><br>
-        <ToggleButton v-model="allow_pc_control" onLabel="Control ON" offLabel="Control Off" />
+        <ToggleButton v-model="allow_pc_control" onLabel="Control ON" offLabel="Control Off" v-if="window?.electronAPI" />
 
     </div>
 </template>

@@ -52,6 +52,13 @@ const items = ref([
             router.push('/timeline');
         }
     },
+     {
+        label: 'download & tutorial',
+        icon: 'pi pi-code',
+        command: () => {
+            router.push('/download');
+        }
+    },
     // {
     //     label: 'rooms-access',
     //     icon: 'pi pi-lock',

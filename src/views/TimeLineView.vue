@@ -6,25 +6,25 @@ const events = ref([
     status: 'Peer-to-Peer File Sharing',
     subtitle: "Unlimited WebRTC-based file transfers without server dependency.",
     content: "Share files of any size directly between clients — fast, secure, and infinite.",
-    src: "/public/tunnel-1000.jpg"
+    src: "/tunnel-1000.jpg"
   },
   {
     status: 'Advanced Remote System Control',
     subtitle: "Next-level control features beyond standard remote access.",
     content: "Operate systems remotely with fine-grained control and seamless performance.",
-    src: "/public/remote-system-1000.jpg"
+    src: "/remote-system-1000.jpg"
   },
   {
     status: 'Shared Listening Experience',
     subtitle: "Like Spotify Jam, but for your entire system audio.",
     content: "Stream high-quality audio with intentional delay to listen to music together with loved ones.",
-    src: "/public/song.jpg"
+    src: "/song.jpg"
   },
   {
     status: 'AI Assistant for Automation',
     subtitle: "Let AI take notes, send emails, set reminders, and more.",
     content: "Integrated smart assistant for hands-free productivity and communication.",
-    src: "/public/ai-1000.jpg"
+    src: "/ai-1000.jpg"
   },
   { status: '' },
   { status: '' },
