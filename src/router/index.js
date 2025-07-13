@@ -9,6 +9,7 @@ import EmptyView from '@/views/EmptyView.vue'
 import ConferenceComponent from '@/views/Conference.vue'
 import FeedBackView from '@/views/FeedBackView.vue'
 import TimeLineView from '@/views/TimeLineView.vue'
+import DownloadView from '@/views/DownloadView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -52,6 +53,11 @@ const router = createRouter({
       path: '/timeline',
       name: 'timeline',
       component: TimeLineView,
+    },
+    {
+      path: '/download',
+      name: "download",
+      component: DownloadView
     },
   ],
 })

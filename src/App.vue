@@ -95,6 +95,8 @@ function toggleDarkMode() {
 
   <loader v-if="loader_object.length > 0"></loader>
 
+  <img src="/logo.svg" alt="" style="position: fixed;width:50px;height: 50px;bottom: 1rem;right: 1rem;">
+
 </template>
 
 <style scoped>

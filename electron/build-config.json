@@ -10,12 +10,14 @@
     "main.cjs"
   ],
   "win": {
-    "target": "nsis"
+    "target": "nsis",
+    "icon": "build/logo.ico"
   },
   "linux": {
     "target": ["AppImage", "deb"],
     "category": "Utility",
-    "maintainer": "Thianesh Urumandampalayam Krishnan <thianesh08@gmail.com"
+    "maintainer": "Thianesh Urumandampalayam Krishnan <thianesh08@gmail.com>",
+    "icon": "build/logo.png"
   },
   "nsis": {
     "oneClick": false,

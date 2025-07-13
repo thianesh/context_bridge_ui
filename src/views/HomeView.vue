@@ -771,6 +771,30 @@ function maybeScrollToBottom() {
 watch(chat_messages, ()=> {
   setTimeout(maybeScrollToBottom, 1000)
 }, {deep:true})
+
+
+
+const vide_rooms = computed( () => {
+  let result = {
+
+  }
+  Object.keys(members_online.value).forEach((member)=> {
+
+      if( !(member in video_room_events.value) ) result[member] = false;
+      else {
+        result[member] = false
+        Object.keys(video_room_events.value[member]).forEach( room_id => {
+          if(video_room_events.value[member][room_id].Video) {
+            result[member] = true
+          }
+        })
+      }
+
+  })
+
+  return result
+
+})
 </script> 
 
 <template>
@@ -963,7 +987,16 @@ watch(chat_messages, ()=> {
           </template>
 
           <template #content>
-            <video playsinline controls :ref="el => videoRefs[member.user_id] = el"></video>
+            <video playsinline controls :ref="el => videoRefs[member.user_id] = el" :style="{ height: (media_route_video[member.user_id] || vide_rooms[member.user_id] ) ? '200px' : '0px'}"></video>
+             
+            <div class="w-full flex items-center justify-center text-gray-400" v-if="!(media_route_video[member.user_id] || vide_rooms[member.user_id] )" style="height: 200px;">
+              <span>
+                <span class="w-20 h-20 rounded-full bg-gray-700 text-white font-bold text-lg flex items-center justify-center">
+                  {{ member?.users?.full_name[0] }}
+                </span>
+              </span>
+            </div>
+
             <Divider />
             <div style="display: flex;">
 
@@ -1043,7 +1076,7 @@ watch(chat_messages, ()=> {
             <div class="card" v-if="!display_preference.minimal">
               <Accordion>
                 <AccordionPanel value="0">
-                  <AccordionHeader>Send File</AccordionHeader>
+                  <AccordionHeader>Send File<tag>coming soon</tag> </AccordionHeader>
                   <AccordionContent style="overflow: auto;width: 300px;">
                     <div class="" style="width: max-content;scale: 0.8;">
                       <FileUpload name="demo[]" url="/api/upload" @upload="onAdvancedUpload($event)" :multiple="true"
@@ -1065,8 +1098,8 @@ watch(chat_messages, ()=> {
                   </AccordionContent>
                 </AccordionPanel>
 
-                <AccordionPanel value="1">
-                  <AccordionHeader>Computer Control <tag severity="warn" icon="pi pi-exclamation-triangle"
+                <AccordionPanel value="2" v-if="window?.electronAPI">
+                  <AccordionHeader>Allow this user to control your pc <tag>beta</tag> <tag severity="warn" icon="pi pi-exclamation-triangle"
                       v-if="pc_control_list[member.user_id]">pc_control</tag>
                   </AccordionHeader>
                   <AccordionContent>
