@@ -460,6 +460,11 @@ async function start_webrtc() {
     let result = await response.json()
     console.log(result)
     console.log("accepting offer")
+    if(!result.SDP) {
+      if(result.error == "User connection already exists. Please exit that connection to connect here. Signing Out from here.") alert(result.error);
+      store.signout()
+      return
+    }
     await webrtc_state.accept_answer(result.SDP)
   } catch (error) {
     console.log("error", error);
