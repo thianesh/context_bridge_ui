@@ -299,9 +299,17 @@ export const webrtc_store = defineStore('webrtc_store', () => {
             // console.log('[DC] msg:', payload);
         }
     }
+
+    
+}
+
+function is_electron() {
+    if(window?.electronAPI) true;
+    return false
 }
 
   return {
+    is_electron,
     activity_map,
     raise_hand,
     thumbs_up,
