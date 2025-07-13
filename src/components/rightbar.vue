@@ -36,7 +36,17 @@ async function list_media() {
     console.log(microphones.value, cameras.value)
 }
 
+const is_desktop = ref(false)
 onMounted(async () => {
+
+  try{
+    if(window?.electronAPI) {
+      is_desktop.value = true
+    }
+  }
+  catch {
+    
+  }
     await list_media()
 })
 
@@ -85,7 +95,7 @@ watch(selected_mic, (new_val) => {
         <Button label="Stop Screen Share" @click="stop_share" icon="pi pi-times"></Button>
 
         <br><br>
-        <ToggleButton v-model="allow_pc_control" onLabel="Control ON" offLabel="Control Off" v-if="window?.electronAPI" />
+        <ToggleButton v-model="allow_pc_control" onLabel="Control ON" offLabel="Control Off" v-if="is_desktop" />
 
     </div>
 </template>

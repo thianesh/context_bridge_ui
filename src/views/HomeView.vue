@@ -37,7 +37,17 @@ const video_element = ref()
 import mouse_events from '@/components/mouse_events.vue';
 import { useStorage } from '@vueuse/core';
 
+const is_desktop = ref(false)
 onMounted(() => {
+
+  try{
+    if(window?.electronAPI) {
+      is_desktop.value = true
+    }
+  }
+  catch {
+
+  }
   // monitoring connections, so we can refresh if something not right.
   const timerId = setInterval(() => {
     console.log("monitoring connection...")
@@ -1098,7 +1108,7 @@ const vide_rooms = computed( () => {
                   </AccordionContent>
                 </AccordionPanel>
 
-                <AccordionPanel value="2" v-if="window?.electronAPI">
+                <AccordionPanel value="2" v-if="is_desktop">
                   <AccordionHeader>Allow this user to control your pc <tag>beta</tag> <tag severity="warn" icon="pi pi-exclamation-triangle"
                       v-if="pc_control_list[member.user_id]">pc_control</tag>
                   </AccordionHeader>
