@@ -40,16 +40,14 @@ import { useStorage } from '@vueuse/core';
 const is_desktop = ref(false)
 onMounted(() => {
 
-  setInterval(()=> {
-      try{
-        if(webrtc_state.is_electron()) {
-        is_desktop.value = true
-      }
+  try{
+    if(window?.electronAPI) {
+      is_desktop.value = true
     }
-    catch {
-      
-    }
-}, 500)
+  }
+  catch {
+
+  }
   // monitoring connections, so we can refresh if something not right.
   const timerId = setInterval(() => {
     console.log("monitoring connection...")

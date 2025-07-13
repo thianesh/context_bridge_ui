@@ -37,19 +37,7 @@ async function list_media() {
 }
 
 const is_desktop = ref(false)
-
-onMounted(async() => {
-
-  setInterval(()=> {
-      try{
-        if(webrtc_state.is_electron()) {
-        is_desktop.value = true
-      }
-    }
-    catch {
-      
-    }
-}, 500)
+onMounted(async () => {
 
   try{
     if(window?.electronAPI) {
