@@ -77,7 +77,7 @@ const items = ref([
 
 <template>
     <div class="card flex justify-center">
-        <Menu :model="items.filter((menuItem) => menuItem.label == 'space' || companyId )">
+        <Menu :model="items.filter( (menuItem) => ( menuItem.label == 'space' || companyId || menuItem.label == 'download & tutorial') )">
             <template #item="{ item, props }">
                 <router-link v-if="item.route" v-slot="{ href, navigate }" :to="item.route" custom>
                     <a v-ripple :href="href" v-bind="props.action" @click="navigate">
