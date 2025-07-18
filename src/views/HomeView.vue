@@ -36,6 +36,7 @@ const video_element = ref()
 
 import mouse_events from '@/components/mouse_events.vue';
 import { useStorage } from '@vueuse/core';
+const do_not_monitor = ref(false)
 
 const is_desktop = ref(false)
 onMounted(() => {
@@ -51,6 +52,11 @@ onMounted(() => {
   // monitoring connections, so we can refresh if something not right.
   const timerId = setInterval(() => {
     console.log("monitoring connection...")
+    if (do_not_monitor.value) {
+      console.log("Do not monitor is true, skipping monitoring")
+      clearInterval(timerId);
+      return
+    }
     if (webrtc_state.get_woc()?.ice_gather_time) {
       if (webrtc_state.get_woc()?.time_of_ice_gather) {
         // console.log("time of ICE gathering: ", webrtc_state.get_woc()?.time_of_ice_gather - Date.now())
@@ -461,8 +467,8 @@ async function start_webrtc() {
     console.log(result)
     console.log("accepting offer")
     if(!result.SDP) {
-      if(result.error == "User connection already exists. Please exit that connection to connect here. Signing Out from here.") alert(result.error);
-      store.signout()
+      if(result.error == "User connection already exists. Please exit that connection to connect here.") alert(result.error);
+      do_not_monitor.value = true
       return
     }
     await webrtc_state.accept_answer(result.SDP)
@@ -813,7 +819,8 @@ const vide_rooms = computed( () => {
 </script> 
 
 <template>
-  <div>
+  <Message v-if="!do_not_monitor" severity="info">Existing connections found! Please close the older connection and refresh this page. <tag severity="warn">use here options will be available soon</tag></Message>
+  <div v-else>
     <p severity="secondary" rounded style="margin: auto;" v-if="session_data?.data?.session">Hi {{
       session_data?.data?.session?.user.user_metadata.full_name }}! ( {{
         session_data?.data?.session?.user.user_metadata.email }} )</p>
