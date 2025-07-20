@@ -35,4 +35,17 @@
     <img src="/conference_ui.png">
     </Fieldset>
 
+      <br>
+      <Fieldset legend="Love using this free app? ✨" :toggleable="true" :collapsed="true">
+        Love using this free app? ✨
+        If you’d like to help it grow, you can send a voluntary contribution via UPI to thianesh08@oksbi.
+        Your support goes straight back into the project—70 % for server costs and 30 % for future development.
+
+        Thank you for making this possible!
+        Questions or feedback? Reach me anytime at thianesh08@gmail.com.
+
+        <img src="/upi.jpg" alt="UPI QR Code" style="width: 200px;margin-top: 10px;">
+
+    </Fieldset>
+
 </template>

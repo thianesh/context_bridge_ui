@@ -97,6 +97,15 @@ watch(selected_mic, (new_val) => {
         <br><br>
         <ToggleButton v-model="allow_pc_control" onLabel="Control ON" offLabel="Control Off" v-if="is_desktop" />
 
+        <br><br>
+         <p style="font-size: 0.7rem;">
+             Need a hand? mail to thianesh08@gmail.com
+         </p>
+
+        <!-- <br><br>
+        <p style="font-size: 0.7rem;">
+            ❤️ the app? Boost it: UPI thianesh08@oksbi
+        </p> -->
     </div>
 </template>
 

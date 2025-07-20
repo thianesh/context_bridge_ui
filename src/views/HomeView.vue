@@ -819,7 +819,7 @@ const vide_rooms = computed( () => {
 </script> 
 
 <template>
-  <Message v-if="!do_not_monitor" severity="info">Existing connections found! Please close the older connection and refresh this page. <tag severity="warn">use here options will be available soon</tag></Message>
+  <Message v-if="do_not_monitor" severity="info">Existing connections found! Please close the older connection and refresh this page. <tag severity="warn">use here options will be available soon</tag></Message>
   <div v-else>
     <p severity="secondary" rounded style="margin: auto;" v-if="session_data?.data?.session">Hi {{
       session_data?.data?.session?.user.user_metadata.full_name }}! ( {{
