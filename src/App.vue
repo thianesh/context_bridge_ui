@@ -45,12 +45,13 @@ onMounted(() => {
 
     // Send heartbeat to backend every 5s
     setInterval(() => {
-      // console.log("💓 Sending heartbeat to backend...");
-      window.electronAPI.sendHeartbeat();
+      console.log("💓 Sending heartbeat to backend...");
+      // window.electronAPI.sendHeartbeat();
     }, 5000);
   }
   else {
-    console.warn('⚠️ electronAPI is undefined');
+    // console.warn('⚠️ electronAPI is undefined');
+    console.warn('⚠️ You are using web version.');
   }
 
 });
