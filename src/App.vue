@@ -189,7 +189,7 @@ function close_rightbar() {
   display: none;
 }
 
-@media screen and (max-width: 1453px) {
+@media screen and (max-width: 1650px) {
  .parent {
   grid-template-columns: 0px 1fr 0px;
   gap: 0rem;

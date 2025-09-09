@@ -144,7 +144,7 @@ async function check_system() {
     redirect: "follow"
   };
 
-  let response = await fetch("https://jo.vldo.in/health-check", requestOptions)
+  let response = await fetch("http://localhost:8080/health-check", requestOptions)
   let usage = await response.json()
   console.log(usage)
   usage_history.value = usage
@@ -171,7 +171,7 @@ async function check_system_75() {
     redirect: "follow"
   };
 
-  let response = await fetch("https://jo.vldo.in/health-check", requestOptions)
+  let response = await fetch("http://localhost:8080/health-check", requestOptions)
   let usage = await response.json()
   console.log(usage)
   usage_history.value = usage

@@ -7,6 +7,12 @@ body {
   background-color: var(--p-primary-50);
 }
 
+@media screen and (max-width: 1453px) {
+    body {
+    padding: 1rem;
+  }
+}
+
 .material-symbols-outlined {
   font-variation-settings:
   'FILL' 0,

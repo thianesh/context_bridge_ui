@@ -59,6 +59,26 @@ const items = ref([
             router.push('/download');
         }
     },
+     {
+        label: 'Triggers',
+        items: [
+            {
+                label: 'Visual AI',
+                icon: 'pi pi-images',
+                  command: () => {
+                    router.push('/visual_ai');
+                }
+            },
+            {
+                label: 'Audio(arriving soon)',
+                icon: 'pi pi-volume-up',
+                disabled: true,
+                  command: () => {
+                    // router.push('/visual_ai');
+                }
+            },
+        ]
+    },
     // {
     //     label: 'rooms-access',
     //     icon: 'pi pi-lock',
