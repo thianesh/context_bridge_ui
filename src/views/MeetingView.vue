@@ -39,7 +39,6 @@ import { useStorage } from '@vueuse/core';
 const do_not_monitor = ref(false)
 
 const is_desktop = ref(false)
-const connection_requested = ref(false)
 onMounted(() => {
 
   try{
@@ -99,7 +98,7 @@ watch(session_data,async (new_session) => {
 
     else {
       get_members()
-      // check_system()
+      check_system()
       // start_webrtc()
       // let SDP = await get_offer()
       // console.log("Got the offer", SDP)
@@ -163,7 +162,7 @@ async function check_system() {
     await check_system_65()
   }
   else {
-    if (connection_requested.value) start_webrtc()
+    start_webrtc()
   }
 
 }
@@ -190,7 +189,7 @@ async function check_system_75() {
     await check_system_75()
   }
   else {
-    if (connection_requested.value) start_webrtc()
+    start_webrtc()
   }
 
 }
@@ -896,21 +895,16 @@ const vide_rooms = computed( () => {
       </Dialog>
     </div>
 
-    <div class="p-card" style="padding: 1rem; text-align: center;" v-if="!(session_data?.data?.session?.user.id in members_online)">
-      <div v-if="!connection_requested">
-        <Button label="Connect" icon="pi pi-sign-in" size="large" @click="((connection_requested = true) && check_system())" />
-      </div>
-      <div v-else>
-        <!-- <Message severity="secondary">Connecting to Server... </Message> -->
-        <TimedMessage :messages="[
-          { message: 'Connecting to server...', timeout: 0, severity: 'secondary' },
-          { message: 'Please hold on', timeout: 5, severity: 'secondary' },
-          { message: 'This is taking longer than usual', timeout: 15, severity: 'warn' },
-          { message: 'Please bear with us', timeout: 40, severity: 'error' },
-          { message: 'Something is wrong. Please try again after somtime.', timeout: 60, severity: 'error' },
-        ]" v-if="session_data?.data?.session"></TimedMessage>
-        <ProgressBar mode="indeterminate" style="height: 6px"></ProgressBar>
-      </div>
+    <div class="p-card" style="padding: 1rem;" v-if="!(session_data?.data?.session?.user.id in members_online)">
+      <!-- <Message severity="secondary">Connecting to Server... </Message> -->
+      <TimedMessage :messages="[
+        { message: 'Connecting to server...', timeout: 0, severity: 'secondary' },
+        { message: 'Please hold on', timeout: 5, severity: 'secondary' },
+        { message: 'This is taking longer than usual', timeout: 15, severity: 'warn' },
+        { message: 'Please bear with us', timeout: 40, severity: 'error' },
+        { message: 'Something is wrong. Please try again after somtime.', timeout: 60, severity: 'error' },
+      ]" v-if="session_data?.data?.session"></TimedMessage>
+      <ProgressBar mode="indeterminate" style="height: 6px"></ProgressBar>
     </div>
 
 

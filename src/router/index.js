@@ -44,7 +44,7 @@ const router = createRouter({
       name: 'feedback',
       component: FeedBackView,
     },
-     {
+    {
       path: '/conference/:room_id',
       name: 'conference',
       component: ConferenceComponent,

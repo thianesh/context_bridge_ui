@@ -174,13 +174,14 @@ export class webrtc_offer_creator {
 
     // await this.#waitForAtLeastOneCandidate();
     await this.#waitForCandidatesForDuration(500);
-    await this.#waitForSDPToContainCandidates();
     
     console.log("Total candidates, ", this.candidate_count)
     if(this.candidate_count < 1) {
       await this.#waitForUpToTwoCandidates();
       if(this.candidate_count < 1) await this.#waitForAtLeastOneCandidate();
     }
+    
+    await this.#waitForSDPToContainCandidates();
     
     console.timeEnd("ICE Gathering...");
     this.ice_gather_time = Date.now() - start;
