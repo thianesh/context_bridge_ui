@@ -83,6 +83,9 @@ export const webrtc_store = defineStore('webrtc_store', () => {
     const  activity_map = ref({})
     const last_ping_received = ref(Date.now())
     const connection_lost = ref(false)
+    const connection_verified = ref(false)
+    const join_message_sent = ref(false)
+    const join_timestamp = ref(null)
 
     const raise_hand = ref([])
     const thumbs_up = ref([])
@@ -107,6 +110,61 @@ export const webrtc_store = defineStore('webrtc_store', () => {
     
     function remove_thumbs_up(member_id) {
         thumbs_up.value = thumbs_up.value.filter(item => item !== member_id);
+    }
+
+    function cleanup_member_state(member_id) {
+        // Remove from video room events
+        if (video_room_events.value[member_id]) {
+            const { [member_id]: _, ...restVideo } = video_room_events.value;
+            video_room_events.value = restVideo;
+        }
+        
+        // Remove from audio room events
+        if (audio_room_events.value[member_id]) {
+            const { [member_id]: _, ...restAudio } = audio_room_events.value;
+            audio_room_events.value = restAudio;
+        }
+        
+        // Remove from media routes
+        if (media_route_video.value[member_id]) {
+            const { [member_id]: _, ...restMediaVideo } = media_route_video.value;
+            media_route_video.value = restMediaVideo;
+        }
+        
+        if (media_route_audio.value[member_id]) {
+            const { [member_id]: _, ...restMediaAudio } = media_route_audio.value;
+            media_route_audio.value = restMediaAudio;
+        }
+        
+        // Remove from activity map
+        if (activity_map.value[member_id]) {
+            const { [member_id]: _, ...restActivity } = activity_map.value;
+            activity_map.value = restActivity;
+        }
+        
+        // Remove from raise hand and thumbs up
+        remove_raise_hand(member_id);
+        remove_thumbs_up(member_id);
+        
+        // Update members_online_list
+        members_online_list.value = members_online_list.value.filter(
+            item => item.member_id !== member_id
+        );
+        
+        console.log(`Cleaned up state for disconnected member: ${member_id}`);
+    }
+
+    function handle_members_offline(previousMembers, currentMembers) {
+        const previousIds = Object.keys(previousMembers);
+        const currentIds = Object.keys(currentMembers);
+        
+        // Find members who went offline
+        const offlineMembers = previousIds.filter(id => !currentIds.includes(id));
+        
+        // Clean up state for each offline member
+        offlineMembers.forEach(memberId => {
+            cleanup_member_state(memberId);
+        });
     }
 
     async function create_root_offer(){
@@ -139,7 +197,13 @@ export const webrtc_store = defineStore('webrtc_store', () => {
             // console.log(msg);
 
             if (msg.event == "online_status") {
-                if(!shallowCompareLevel2(members_online.value, msg.data.active_users)) members_online.value = msg.data.active_users;
+                const previousMembers = members_online.value;
+                const currentMembers = msg.data.active_users;
+                
+                // Check for members who went offline and clean up their state
+                handle_members_offline(previousMembers, currentMembers);
+                
+                if(!shallowCompareLevel2(previousMembers, currentMembers)) members_online.value = currentMembers;
                 // Update ping timestamp on any message from server
                 last_ping_received.value = Date.now()
                 connection_lost.value = false
@@ -258,8 +322,12 @@ export const webrtc_store = defineStore('webrtc_store', () => {
                                 ...payload,
                                 time: new Date(payload.time)
                             })
-                        default:
-                            break;
+                            // Verify connection if this is our join message echoed back
+                            if (join_message_sent.value && !connection_verified.value && payload.join_timestamp === join_timestamp.value) {
+                                connection_verified.value = true
+                                console.log("Connection verified - join message echoed back with matching timestamp:", payload.join_timestamp)
+                            }
+                            break
                         }
                     }
             }
@@ -323,6 +391,46 @@ function is_electron() {
     return false
 }
 
+  function send_join_notification(userName, userId, onlineMembers) {
+    join_message_sent.value = true
+    connection_verified.value = false
+    const timestamp = Date.now()
+    join_timestamp.value = timestamp
+    
+    const dc = woc.get_data_channel()
+    if (dc && dc.readyState === 'open') {
+      const joinTime = new Date(timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })
+      const joinMessage = `${userName} joined at ${joinTime}`
+      
+      // Send to self (for verification echo) and all online members
+      const recipients = [userId, ...Object.keys(onlineMembers).filter(id => id !== userId)]
+      
+      recipients.forEach(memberId => {
+        dc.send(JSON.stringify({
+          Type: "route_to",
+          route_to: memberId,
+          data: JSON.stringify({
+            type: "chat",
+            payload: {
+              name: "System",
+              message: joinMessage,
+              time: timestamp,
+              member_id: "system",
+              join_timestamp: timestamp  // Used for verification
+            }
+          })
+        }))
+      })
+      console.log("Sent join notification with timestamp:", timestamp)
+    }
+  }
+
+  function reset_verification() {
+    connection_verified.value = false
+    join_message_sent.value = false
+    join_timestamp.value = null
+  }
+
   return {
     is_electron,
     activity_map,
@@ -332,6 +440,7 @@ function is_electron() {
     remove_raise_hand,
     add_thumbs_up,
     remove_thumbs_up,
+    cleanup_member_state,
     get_woc,
     create_root_offer,
     close_root_offer,
@@ -348,6 +457,10 @@ function is_electron() {
     members_online_list,
     last_ping_received,
     connection_lost,
+    connection_verified,
+    join_message_sent,
+    send_join_notification,
+    reset_verification,
   }
 })
 

@@ -30,7 +30,7 @@ import router from '@/router';
 const webrtc_state = webrtc_store()
 const { members_online, audio_room_events, video_room_events, chat_messages,
   media_route_audio, media_route_video, pc_control_list, activity_map,
-  last_ping_received, connection_lost } = storeToRefs(webrtc_state)
+  last_ping_received, connection_lost, connection_verified } = storeToRefs(webrtc_state)
 
 const visible = ref(false)
 const video_element = ref()
@@ -490,6 +490,26 @@ async function start_webrtc() {
       return
     }
     await webrtc_state.accept_answer(result.SDP)
+    
+    // Send verification message and show loader
+    store.add_loader_message("Verifying stability and connectivity, please hold on...")
+    
+    // Wait for data channel to be fully open, then send verification
+    const checkAndSendVerification = () => {
+      const dc = webrtc_state.get_woc()?.get_data_channel()
+      if (dc && dc.readyState === 'open') {
+        const userName = session_data.value?.data?.session?.user.user_metadata.full_name || 'User'
+        const userId = session_data.value?.data?.session?.user.id
+        // Wait a bit for online_status to populate, then send join notification
+        setTimeout(() => {
+          webrtc_state.send_join_notification(userName, userId, members_online.value)
+        }, 500)
+      } else {
+        setTimeout(checkAndSendVerification, 100)
+      }
+    }
+    checkAndSendVerification()
+    
   } catch (error) {
     console.log("error", error);
     alert("Unable to connect to our Server, Please try again after somtime. If you face the same issue consistently. please mail at thianesh08@gmail.com")
@@ -810,6 +830,19 @@ function maybeScrollToBottom() {
 watch(chat_messages, ()=> {
   setTimeout(maybeScrollToBottom, 1000)
 }, {deep:true})
+
+// Watch for connection verification to complete
+watch(connection_verified, (verified) => {
+  if (verified) {
+    store.remove_loader_message("Verifying stability and connectivity, please hold on...")
+    toast.add({
+      severity: 'success',
+      summary: 'Connected',
+      detail: 'Connection verified successfully. You are good to go!',
+      life: 4000
+    })
+  }
+})
 
 
 
