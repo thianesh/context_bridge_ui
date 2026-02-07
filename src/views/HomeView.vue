@@ -43,7 +43,7 @@ const is_desktop = ref(false)
 const connection_requested = ref(false)
 onMounted(() => {
 
-  try{wh
+  try{
     if(window?.electronAPI) {
       is_desktop.value = true
     }
@@ -212,8 +212,8 @@ async function check_system_75() {
 const offer_sdp = ref()
 const main_conatainer = ref()
 
-const trackToStreamMap = new Map();
-const streamMap = new Map();
+let trackToStreamMap = new Map();
+let streamMap = new Map();
 
 function toggle_audio_route(id) {
   audio_route.value = {           // ① NEW object reference
@@ -264,6 +264,67 @@ function turn_off_all_media() {
   video_route_rooms.value].forEach(obj => {
     Object.keys(obj).forEach(key => obj[key] = false)
   })
+}
+
+function end_call() {
+  // Turn off all media first
+  turn_off_all_media()
+  
+  // Clear video/audio element sources
+  Object.values(videoRefs.value).forEach(el => {
+    if (el) {
+      el.pause()
+      el.srcObject = null
+    }
+  })
+  Object.values(audioRefs.value).forEach(el => {
+    if (el) {
+      el.pause()
+      el.srcObject = null
+    }
+  })
+  
+  // Clear preview
+  if (video_preview.value) {
+    video_preview.value.pause()
+    video_preview.value.srcObject = null
+  }
+  
+  // Clear local maps
+  trackToStreamMap = new Map()
+  streamMap = new Map()
+  
+  // Reset WebRTC store (closes PC, resets state)
+  webrtc_state.reset_all()
+  
+  // Reset local state
+  connection_requested.value = false
+  do_not_monitor.value = false
+  
+  // Clear route states
+  audio_route.value = {}
+  video_route.value = {}
+  audio_route_rooms.value = {}
+  video_route_rooms.value = {}
+  
+  toast.add({
+    severity: 'info',
+    summary: 'Disconnected',
+    detail: 'Call ended successfully',
+    life: 3000
+  })
+  
+  console.log('Call ended and cleaned up')
+}
+
+function reconnect() {
+  end_call()
+  
+  // Small delay then reconnect
+  setTimeout(() => {
+    connection_requested.value = true
+    check_system()
+  }, 500)
 }
 
 watch(audio_route, newVal => {
@@ -875,7 +936,7 @@ const vide_rooms = computed( () => {
     <div class="flex items-center gap-2">
       <i class="pi pi-exclamation-triangle"></i>
       <span>Connection lost! Server is not reachable.</span>
-      <Button label="Reconnect" severity="danger" size="small" @click="location.reload()" />
+      <Button label="Reconnect" severity="danger" size="small" @click="reconnect" />
     </div>
   </Message>
   <div v-else>
@@ -922,6 +983,10 @@ const vide_rooms = computed( () => {
 
       <Chip class="py-0 pl-0 pr-4" style="background-color: transparent;">
         <Button label="stop all" severity="secondary" @click="turn_off_all_media()" outlined></Button>
+      </Chip>
+
+      <Chip class="py-0 pl-0 pr-4" style="background-color: transparent;">
+        <Button label="End Call" severity="danger" icon="pi pi-phone" @click="end_call()" outlined></Button>
       </Chip>
 
        <Chip class="py-0 pl-0 pr-4" style="background-color: transparent;">

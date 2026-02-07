@@ -67,7 +67,7 @@ function shallowCompareLevel2(obj1, obj2) {
 
 export const webrtc_store = defineStore('webrtc_store', () => {
 
-    const woc = new webrtc_offer_creator();
+    let woc = new webrtc_offer_creator();
     const signal_state_stable = ref(false)
     const members_online = ref({})
     const members_online_list = ref([])
@@ -431,6 +431,40 @@ function is_electron() {
     join_timestamp.value = null
   }
 
+  function reset_all() {
+    // Close existing WebRTC connection
+    if (woc) {
+      try {
+        woc.close()
+      } catch (e) {
+        console.warn('Error closing woc:', e)
+      }
+    }
+    
+    // Create fresh WebRTC offer creator
+    woc = new webrtc_offer_creator()
+    
+    // Reset all state
+    signal_state_stable.value = false
+    members_online.value = {}
+    members_online_list.value = []
+    video_room_events.value = {}
+    audio_room_events.value = {}
+    media_route_video.value = {}
+    media_route_audio.value = {}
+    activity_map.value = {}
+    last_ping_received.value = Date.now()
+    connection_lost.value = false
+    connection_verified.value = false
+    join_message_sent.value = false
+    join_timestamp.value = null
+    raise_hand.value = []
+    thumbs_up.value = []
+    // Note: chat_messages intentionally preserved
+    
+    console.log('WebRTC store reset complete')
+  }
+
   return {
     is_electron,
     activity_map,
@@ -461,6 +495,7 @@ function is_electron() {
     join_message_sent,
     send_join_notification,
     reset_verification,
+    reset_all,
   }
 })
 
