@@ -58,7 +58,6 @@ export class webrtc_offer_creator {
     this.ice_gather_time = 0
     this.time_of_ice_gather = 0
     this.dc_open = false
-    this.mediaError = null // Track media access errors
     this.dc.onopen = () => {
       console.log("[DC] open");
       this.dc_open = true
@@ -161,14 +160,10 @@ export class webrtc_offer_creator {
   /** Create the initial OFFER (data-channel only) and return it as base-64 */
   async makeOfferBase64() {
     const stream = await this.#getMediaStream();
-    
-    // Check if we got any real media
-    if (this.mediaError) {
-      console.error('❌ Failed to get media:', this.mediaError);
-      throw new Error(`Media access failed: ${this.mediaError.message}`);
-    }
-    
     stream.getTracks().forEach((track) => this.pc.addTrack(track, stream));
+
+    const d = await this.pc.createOffer();
+    await this.pc.setLocalDescription(d);
 
     await this.#createAndSetOffer();
 
@@ -180,24 +175,12 @@ export class webrtc_offer_creator {
     // await this.#waitForAtLeastOneCandidate();
     await this.#waitForCandidatesForDuration(500);
     
+    console.log("Total candidates, ", this.candidate_count)
     if(this.candidate_count < 1) {
-      console.warn('⚠️ No candidates after 500ms, waiting longer...');
       await this.#waitForUpToTwoCandidates();
-      if(this.candidate_count < 1) {
-        console.warn('⚠️ Still no candidates after 5s, final attempt...');
-        await this.#waitForAtLeastOneCandidate();
-      }
+      if(this.candidate_count < 1) await this.#waitForAtLeastOneCandidate();
     }
     
-    console.log("Total candidates v003, ", this.candidate_count);
-    
-    if(this.candidate_count === 0) {
-      console.error('❌ ZERO ICE candidates gathered - connection will likely fail!');
-      console.error('   This usually means:', 
-        '\n   1. Camera/mic access was denied',
-        '\n   2. Network firewall is blocking',
-        '\n   3. TURN server is unreachable');
-    }
     await this.#waitForSDPToContainCandidates();
     
     console.timeEnd("ICE Gathering...");
@@ -240,7 +223,6 @@ export class webrtc_offer_creator {
 
   // Wait for ICE gathering to complete
   console.log("waiting for ICE complete...")
-  this.candidate_count = 0;
   await this.#waitForAtLeastOneCandidate();
   await this.#waitForSDPToContainCandidates();
 
@@ -273,33 +255,20 @@ export class webrtc_offer_creator {
 
   async #waitForAtLeastOneCandidate() {
   return new Promise((resolve) => {
-    let gotOne = false;
-    
     const onCandidate = (e) => {
       if (e.candidate) {
-        this.candidate_count++;
-        
-        if (!gotOne) {
-          gotOne = true;
-          resolve(); // 🔥 Got the first candidate, resolve immediately but keep counting
-        }
+        this.pc.removeEventListener("icecandidate", onCandidate);
+        resolve(); // 🔥 Got the first candidate, good to go
       }
     };
 
     this.pc.addEventListener("icecandidate", onCandidate);
 
     // fallback in case no candidates ever come (e.g., host-only network)
-    const timer = setTimeout(() => {
-      this.pc.removeEventListener("icecandidate", onCandidate);
-      if (!gotOne) {
-        resolve(); // Timeout reached without any candidates
-      }
-    }, 1000); // ⏱️ wait max 1s
-    
-    // Clean up listener after timeout even if we got a candidate
     setTimeout(() => {
       this.pc.removeEventListener("icecandidate", onCandidate);
-    }, 1000);
+      resolve();
+    }, 1000); // ⏱️ wait max 1s
   });
 }
 
@@ -375,12 +344,33 @@ async #waitForSDPToContainCandidates() {
 
 
   async #getMediaStream() {
+    // try {
+    //   return await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+    // } catch (err) {
+    //   console.warn('Partial media access or error, falling back:', err);
+
+    //   const tracks = [];
+
+    //   try {
+    //     const audio = await navigator.mediaDevices.getUserMedia({ audio: true });
+    //     tracks.push(...audio.getTracks());
+    //   } catch (e) {
+    //     console.warn('No mic access');
+    //   }
+
+    //   try {
+    //     const video = await navigator.mediaDevices.getUserMedia({ video: true });
+    //     tracks.push(...video.getTracks());
+    //   } catch (e) {
+    //     console.warn('No camera access');
+    //   }
+
+    //   return new MediaStream(tracks);
+    // }
     const stream = new MediaStream();
 
     let gotAudio = false;
     let gotVideo = false;
-    let audioError = null;
-    let videoError = null;
 
     // Try real audio
     try {
@@ -389,10 +379,8 @@ async #waitForSDPToContainCandidates() {
       });
       micStream.getAudioTracks().forEach((track) => stream.addTrack(track));
       gotAudio = true;
-      console.log('✅ Microphone access granted');
     } catch (e) {
-      audioError = e;
-      console.warn("⚠️ Mic access denied or failed:", e.name, e.message);
+      console.warn("Mic access denied or failed");
     }
 
     // Try real video
@@ -400,48 +388,21 @@ async #waitForSDPToContainCandidates() {
       const camStream = await navigator.mediaDevices.getUserMedia({
         video: true,
       });
-      this.camStream = camStream;
+      this.camStream = camStream
 
       camStream.getVideoTracks().forEach((track) => stream.addTrack(track));
       gotVideo = true;
-      console.log('✅ Camera access granted');
     } catch (e) {
-      videoError = e;
-      console.error("❌ Camera access denied or failed:", e.name, e.message);
-      
-      // Store the error for caller to handle
-      this.mediaError = {
-        type: 'camera',
-        name: e.name,
-        message: e.message,
-        originalError: e
-      };
-    }
-
-    // If BOTH audio and video failed, this is a critical error
-    if (!gotAudio && !gotVideo) {
-      const error = new Error('Both camera and microphone access failed');
-      error.audioError = audioError;
-      error.videoError = videoError;
-      this.mediaError = {
-        type: 'both',
-        message: 'Complete media access failure',
-        audioError,
-        videoError
-      };
-      console.error('❌ CRITICAL: No media devices accessible');
-      // Still return stream with fallbacks, but error is tracked
+      console.warn("Camera access denied or failed");
     }
 
     // Add silent audio if missing
     if (!gotAudio) {
-      console.log('🔇 Using silent audio track as fallback');
       stream.addTrack(createSilentAudioTrack());
     }
 
     // Add black video if missing
     if (!gotVideo) {
-      console.log('📵 Using black video track as fallback');
       stream.addTrack(this.createBlackVideoTrack());
     }
 
