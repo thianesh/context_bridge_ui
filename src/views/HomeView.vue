@@ -29,7 +29,8 @@ import { webrtc_store } from '@/stores/webrtc_store';
 import router from '@/router';
 const webrtc_state = webrtc_store()
 const { members_online, audio_room_events, video_room_events, chat_messages,
-  media_route_audio, media_route_video, pc_control_list, activity_map } = storeToRefs(webrtc_state)
+  media_route_audio, media_route_video, pc_control_list, activity_map,
+  last_ping_received, connection_lost } = storeToRefs(webrtc_state)
 
 const visible = ref(false)
 const video_element = ref()
@@ -75,6 +76,19 @@ onMounted(() => {
       }
     }
   }, 1000)
+
+  // Monitor ping/pong for connection health - check every 5 seconds
+  const pingCheckInterval = setInterval(() => {
+    // Only check if we're supposed to be connected (user is in members_online)
+    if (session_data.value?.data?.session?.user.id in members_online.value) {
+      const timeSinceLastPing = Date.now() - last_ping_received.value
+      // If no ping received for 15 seconds, mark connection as lost
+      if (timeSinceLastPing > 15_000) {
+        connection_lost.value = true
+        console.warn("Connection lost - no ping received for", timeSinceLastPing, "ms")
+      }
+    }
+  }, 5000)
 
 })
 
@@ -292,22 +306,25 @@ setInterval(() => {
 
   if (members_online.value.length == 0) return
 
-  webrtc_state.get_woc()?.get_data_channel()?.send(JSON.stringify({
+  const dc = webrtc_state.get_woc()?.get_data_channel()
+  if (!dc || dc.readyState !== 'open') return
+
+  dc.send(JSON.stringify({
     Type: "audio_route",
     audio_route: audio_route.value
   }))
 
-  webrtc_state.get_woc()?.get_data_channel()?.send(JSON.stringify({
+  dc.send(JSON.stringify({
     Type: "video_route",
     video_route: video_route.value
   }))
 
-  webrtc_state.get_woc()?.get_data_channel()?.send(JSON.stringify({
+  dc.send(JSON.stringify({
     Type: "audio_route_room",
     audio_route_room: audio_route_rooms.value
   }))
 
-  webrtc_state.get_woc()?.get_data_channel()?.send(JSON.stringify({
+  dc.send(JSON.stringify({
     Type: "video_route_room",
     video_route_room: video_route_rooms.value
   }))
@@ -821,6 +838,13 @@ const vide_rooms = computed( () => {
 
 <template>
   <Message v-if="do_not_monitor" severity="info">Existing connections found! Please close the older connection and refresh this page. <tag severity="warn">use here options will be available soon</tag></Message>
+  <Message v-else-if="connection_lost" severity="error" :closable="false">
+    <div class="flex items-center gap-2">
+      <i class="pi pi-exclamation-triangle"></i>
+      <span>Connection lost! Server is not reachable.</span>
+      <Button label="Reconnect" severity="danger" size="small" @click="location.reload()" />
+    </div>
+  </Message>
   <div v-else>
     <p severity="secondary" rounded style="margin: auto;" v-if="session_data?.data?.session">Hi {{
       session_data?.data?.session?.user.user_metadata.full_name }}! ( {{

@@ -81,6 +81,8 @@ export const webrtc_store = defineStore('webrtc_store', () => {
        
     ])
     const  activity_map = ref({})
+    const last_ping_received = ref(Date.now())
+    const connection_lost = ref(false)
 
     const raise_hand = ref([])
     const thumbs_up = ref([])
@@ -138,6 +140,19 @@ export const webrtc_store = defineStore('webrtc_store', () => {
 
             if (msg.event == "online_status") {
                 if(!shallowCompareLevel2(members_online.value, msg.data.active_users)) members_online.value = msg.data.active_users;
+                // Update ping timestamp on any message from server
+                last_ping_received.value = Date.now()
+                connection_lost.value = false
+            }
+
+            if (msg.event == "ping" || msg.Type == "ping") {
+                last_ping_received.value = Date.now()
+                connection_lost.value = false
+                // Send pong response
+                const dc = woc.get_data_channel()
+                if (dc && dc.readyState === 'open') {
+                    dc.send(JSON.stringify({ Type: "pong" }))
+                }
             }
 
             else if (msg.event == "video_room_event") {
@@ -331,6 +346,8 @@ function is_electron() {
     allow_pc_control,
     chat_messages,
     members_online_list,
+    last_ping_received,
+    connection_lost,
   }
 })
 
