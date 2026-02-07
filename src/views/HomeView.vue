@@ -43,7 +43,7 @@ const is_desktop = ref(false)
 const connection_requested = ref(false)
 onMounted(() => {
 
-  try{
+  try{wh
     if(window?.electronAPI) {
       is_desktop.value = true
     }
