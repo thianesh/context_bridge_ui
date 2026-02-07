@@ -29,7 +29,7 @@ import { webrtc_store } from '@/stores/webrtc_store';
 import router from '@/router';
 const webrtc_state = webrtc_store()
 const { members_online, audio_room_events, video_room_events, chat_messages,
-  media_route_audio, media_route_video, pc_control_list, activity_map } = storeToRefs(webrtc_state)
+  media_route_audio, media_route_video, pc_control_list, activity_map, streamMap } = storeToRefs(webrtc_state)
 
 const visible = ref(false)
 const video_element = ref()
@@ -135,6 +135,13 @@ const usage_history = useStorage("usage", {
 })
 
 async function check_system() {
+  // Check if WebRTC connection already exists (coming from HomeView)
+  if (webrtc_state.isConnected()) {
+    console.log('WebRTC connection already established, reusing existing connection')
+    // Just re-attach streams to new DOM elements
+    assing_dom()
+    return
+  }
 
   if (usage_history.value.cpu > 90) {
     await check_system_75()
@@ -197,8 +204,9 @@ async function check_system_75() {
 const offer_sdp = ref()
 const main_conatainer = ref()
 
-const trackToStreamMap = new Map();
-const streamMap = new Map();
+// Stream maps are now centralized in webrtc_store
+// const trackToStreamMap = new Map();
+// const streamMap = new Map();
 
 function toggle_audio_route(id) {
   audio_route.value = {           // ① NEW object reference
@@ -317,7 +325,6 @@ setInterval(() => {
 function assing_dom() {
   // console.log("Assigned DOM")
   const woc = webrtc_state.get_woc()
-  // console.log(woc)
 
   woc.video_preview = video_preview.value
   webrtc_state.add_on_message()
@@ -325,78 +332,13 @@ function assing_dom() {
   woc.video_preview.srcObject = woc.camStream ? woc?.camStream : woc.videoStreamBlack
   woc.video_preview.play()
 
-  woc.pc.ontrack = function (event) {
-    const { track, streams } = event;
-    if (track && streams.length) {
-      trackToStreamMap.set(track.id, streams.map(s => s.id));
-    }
-
-    // saving streams
-    const stream = event.streams[0];
-    if (stream) {
-      streamMap.set(stream.id, stream);
-
-      let [my_user_id, member_user_id, media_type] = stream.id.split('_')
-
-      if (media_type == "video") {
-        console.log("Received video stream from", my_user_id, member_user_id, media_type)
-        console.log("Video refs", videoRefs.value)
-        if (member_user_id in videoRefs.value) {
-          // console.log("Attaching video stream to element", member_user_id, videoRefs.value[member_user_id])
-
-          // videoRefs.value[member_user_id].pause()
-          // videoRefs.value[member_user_id].srcObject = null
-          // videoRefs.value[member_user_id].currentTime = 0
-          // videoRefs.value[member_user_id].load()
-
-          attachStreamToElement(stream.id, videoRefs.value[member_user_id]);
-          // attachTrack(track, videoRefs.value[member_user_id]);
-        }
-      }
-
-      else if (media_type == "audio") {
-        console.log("Received audio stream from", my_user_id, member_user_id, media_type)
-        console.log("Audio refs", audioRefs.value)
-        if (member_user_id in audioRefs.value) {
-          // console.log("Attaching audio stream to element", member_user_id, audioRefs.value[member_user_id])
-
-          // audioRefs.value[member_user_id].pause()
-          // audioRefs.value[member_user_id].srcObject = null
-          // audioRefs.value[member_user_id].currentTime = 0
-          // audioRefs.value[member_user_id].load()
-
-          const audioEl = attachStreamToElement(stream.id, audioRefs.value[member_user_id]);
-          // logPlayerVolume(audioEl, 500)
-          monitorAudioLevel(audioEl, { user_id: member_user_id, email: members.value.filter(member => member.user_id == member_user_id)[0]?.users.email });
-
-          // attachTrack(track, audioRefs.value[member_user_id]);
-        }
-      }
-    }
-
-    // var el = document.createElement(event.track.kind)
-    // el.srcObject = event.streams[0]
-    // el.autoplay = true
-    // el.controls = true
-    // main_conatainer.value.appendChild(el)
-  }
-
+  // Use centralized stream handler from webrtc_store
+  webrtc_state.initOnTrackHandler(videoRefs, audioRefs, members, monitorAudioLevel)
 }
 
+// Use centralized attachStreamToElement from store
 function attachStreamToElement(streamId, mediaEl) {
-  const stream = streamMap.get(streamId);
-  if (!stream) {
-    console.warn('No stream found for ID:', streamId);
-    return;
-  }
-
-  mediaEl.srcObject = stream;
-  mediaEl.autoplay = true;
-  mediaEl.controls = true;
-  mediaEl.playsInline = true;
-  // mediaEl.load();
-  mediaEl.play().catch(err => console.warn('Play error:', err));
-  return mediaEl
+  return webrtc_state.attachStreamToElement(streamId, mediaEl)
 }
 
 
@@ -441,9 +383,25 @@ async function start_webrtc() {
   console.log(session_data)
   if (!session_data) {
     alert("Please login")
+    return
   }
 
-  offer_sdp.value = await webrtc_state.create_root_offer()
+  try {
+    offer_sdp.value = await webrtc_state.create_root_offer()
+  } catch (error) {
+    console.error('❌ Failed to create WebRTC offer:', error)
+    
+    // Check if it's a camera/microphone permission issue
+    if (error.message.includes('Media access failed') || error.message.includes('camera') || error.message.includes('microphone')) {
+      alert('Camera or Microphone access was denied. Please grant permissions and try again.\n\nSteps:\n1. Click the camera icon in your browser\'s address bar\n2. Allow camera and microphone access\n3. Refresh the page and try again')
+    } else {
+      alert('Failed to initialize WebRTC connection. Please check your camera/microphone permissions and try again.')
+    }
+    
+    do_not_monitor.value = true
+    return
+  }
+  
   assing_dom()
 
   const myHeaders = new Headers();

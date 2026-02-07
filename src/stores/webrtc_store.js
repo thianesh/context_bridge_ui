@@ -77,6 +77,11 @@ export const webrtc_store = defineStore('webrtc_store', () => {
     const media_route_audio = ref({})
     const allow_pc_control = useStorage("allow_pc_control", false)
     const pc_control_list = useStorage('pc_control_list',{})
+    
+    // Centralized stream management - shared across all views
+    const trackToStreamMap = new Map()
+    const streamMap = ref(new Map())
+    const onTrackInitialized = ref(false)
     const chat_messages = ref([
        
     ])
@@ -308,6 +313,95 @@ function is_electron() {
     return false
 }
 
+// Centralized stream attachment - reusable across views
+function getStreamById(streamId) {
+    return streamMap.value.get(streamId)
+}
+
+function attachStreamToElement(streamId, mediaEl) {
+    const stream = streamMap.value.get(streamId)
+    if (!stream) {
+        console.warn('No stream found for ID:', streamId)
+        return null
+    }
+    
+    mediaEl.srcObject = stream
+    mediaEl.autoplay = true
+    mediaEl.controls = true
+    mediaEl.playsInline = true
+    mediaEl.play().catch(err => console.warn('Play error:', err))
+    return mediaEl
+}
+
+// Initialize ontrack handler once - call this after WebRTC connection is established
+function initOnTrackHandler(videoRefs, audioRefs, members, onAudioAttached) {
+    if (onTrackInitialized.value) {
+        console.log('ontrack handler already initialized, re-attaching existing streams')
+        reattachAllStreams(videoRefs, audioRefs, members, onAudioAttached)
+        return
+    }
+    
+    woc.pc.ontrack = function(event) {
+        const { track, streams } = event
+        if (track && streams.length) {
+            trackToStreamMap.set(track.id, streams.map(s => s.id))
+        }
+        
+        const stream = event.streams[0]
+        if (stream) {
+            streamMap.value.set(stream.id, stream)
+            
+            const [my_user_id, member_user_id, media_type] = stream.id.split('_')
+            
+            if (media_type === 'video') {
+                console.log('Received video stream from', my_user_id, member_user_id, media_type)
+                if (member_user_id in videoRefs.value) {
+                    attachStreamToElement(stream.id, videoRefs.value[member_user_id])
+                }
+            } else if (media_type === 'audio') {
+                console.log('Received audio stream from', my_user_id, member_user_id, media_type)
+                if (member_user_id in audioRefs.value) {
+                    const audioEl = attachStreamToElement(stream.id, audioRefs.value[member_user_id])
+                    if (audioEl && onAudioAttached) {
+                        const memberData = members.value?.find(m => m.user_id === member_user_id)
+                        onAudioAttached(audioEl, { 
+                            user_id: member_user_id, 
+                            email: memberData?.users?.email 
+                        })
+                    }
+                }
+            }
+        }
+    }
+    
+    onTrackInitialized.value = true
+}
+
+// Re-attach existing streams to new DOM refs (used when navigating between views)
+function reattachAllStreams(videoRefs, audioRefs, members, onAudioAttached) {
+    streamMap.value.forEach((stream, streamId) => {
+        const [my_user_id, member_user_id, media_type] = streamId.split('_')
+        
+        if (media_type === 'video' && member_user_id in videoRefs.value) {
+            attachStreamToElement(streamId, videoRefs.value[member_user_id])
+        } else if (media_type === 'audio' && member_user_id in audioRefs.value) {
+            const audioEl = attachStreamToElement(streamId, audioRefs.value[member_user_id])
+            if (audioEl && onAudioAttached) {
+                const memberData = members.value?.find(m => m.user_id === member_user_id)
+                onAudioAttached(audioEl, { 
+                    user_id: member_user_id, 
+                    email: memberData?.users?.email 
+                })
+            }
+        }
+    })
+}
+
+// Check if connection is already established
+function isConnected() {
+    return woc.dc_open && woc.pc?.connectionState === 'connected'
+}
+
   return {
     is_electron,
     activity_map,
@@ -331,6 +425,15 @@ function is_electron() {
     allow_pc_control,
     chat_messages,
     members_online_list,
+    // New exports for centralized stream management
+    streamMap,
+    trackToStreamMap,
+    getStreamById,
+    attachStreamToElement,
+    initOnTrackHandler,
+    reattachAllStreams,
+    isConnected,
+    onTrackInitialized,
   }
 })
 
